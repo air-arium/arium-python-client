@@ -1,6 +1,7 @@
 import csv
 import json
 
+from api_call.arium.api.request import calc_polling
 from api_call.client import APIClient
 
 
@@ -37,7 +38,8 @@ def pdca_async_helper(client: APIClient, input_data, request_input_token, endpoi
         raise Exception("ERROR: failed submitting to {}".format(endpoint))
 
     location = response.headers['location']
-    return client.pooling(location, get_pdca_result)
+    response = calc_polling(client, location)
+    return get_pdca_result(response)
 
 
 def match_api_call(client: APIClient, input_data, schema=1, tags=None, estimate_only=False):

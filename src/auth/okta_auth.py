@@ -1,10 +1,15 @@
 import json
 import logging.config
+import socket
 import sys
+import webbrowser
 from os import environ, path
 from typing import List, Dict, Union
 
-from constants import *
+from oauthlib.oauth2 import BackendApplicationClient
+from requests_oauthlib import OAuth2Session
+
+from config.constants import *
 
 
 class Auth:
@@ -26,38 +31,31 @@ class Auth:
         self.verify = verify
         self.client = None
 
-        self._ignore_warnings()
-
         logging.config.dictConfig(LOGGING_CONFIG)
         self.logger = logging.getLogger(__name__)
 
-        self._connections = self._get_connections(connections, prefix)
+        self._connections = self._get_conn(connections, prefix, authorization_code)
         offline_access = authorization_code
+
         self._auth_user(offline_access, authorization_code)
 
-    def connections(self):
+    def __repr__(self) -> str:
+        return self.get_dict().__repr__()
+
+    def __str__(self) -> str:
+        return self.get_dict().__str__()
+
+    def connections(self) -> Dict:
         return self._connections.copy()
 
-    def _get_dict(self):
+    def get_dict(self) -> Dict:
         return {
             "tenant": self.tenant,
             "role": self.role,
             "connections": {k: v for k, v in self._connections.items() if k not in ('client_id', 'client_secret')},
         }
 
-    def __repr__(self):
-        return self._get_dict().__repr__()
-
-    def __str__(self):
-        return self._get_dict().__str__()
-
-    def _fet_connections_from_env(self, c, pref=None):
-        pref = '' if not pref else pref.replace("-", "_") + "_"
-        for key in c:
-            c[key] = environ.get(pref + key, environ.get(key, c[key]))
-        return c
-
-    def _get_connections(self, connections, prefix=''):
+    def _get_conn(self, connections: Dict, prefix: str = None, authorization_code: bool = True) -> Dict:
         default_c = Auth.DEFAULT_CONNECTIONS.copy()
 
         if isinstance(connections, str):
@@ -67,22 +65,29 @@ class Auth:
         if connections is not None:
             default_c.update(connections)
 
+        required_keys = list(Auth.DEFAULT_CONNECTIONS)
+        if not authorization_code:
+            required_keys.remove(AUTHORIZATION_URL)
+            del default_c[AUTHORIZATION_URL]
+
         if not all(default_c.values()):
-            self._fet_connections_from_env(default_c, prefix)
+            self._conn_from_env(default_c, prefix)
         if not all(default_c.values()):
             self.logger.error("Failed to load the configuration. Configuration must include: {missing}!"
-                              .format(missing=', '.join({key for key in default_c if not default_c[key]})))
+                              .format(missing=', '.join({key for key in required_keys if not default_c[key]})))
             sys.exit(1)
 
         default_c[REDIRECT_URI] = default_c[REDIRECT_URI].format(port=default_c[PORT])
         return default_c
 
-    def _ignore_warnings(self):
-        if not self.verify:
-            import urllib3
-            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    @staticmethod
+    def _conn_from_env(connections: Dict, prefix: str = None) -> Dict:
+        prefix = '' if not prefix else prefix.replace("-", "_") + "_"
+        for key in connections:
+            connections[key] = environ.get(prefix + key, environ.get(key, connections[key]))
+        return connections
 
-    def _auth_user(self, offline_access=True, authorization_code=True):
+    def _auth_user(self, offline_access: bool = True, authorization_code: bool = True):
         if self.client and self.client.authorized:
             return
 
@@ -94,10 +99,7 @@ class Auth:
 
         self.client = self._auth_user_web(scope) if authorization_code else self._auth_user_backend(scope)
 
-    def _auth_user_backend(self, scope: List):
-        from oauthlib.oauth2 import BackendApplicationClient
-        from requests_oauthlib import OAuth2Session
-
+    def _auth_user_backend(self, scope: List) -> OAuth2Session:
         # Authorization
         client = BackendApplicationClient(client_id=self._connections[CLIENT_ID])
         oauth = OAuth2Session(client=client,
@@ -117,9 +119,7 @@ class Auth:
 
         return client
 
-    def _auth_user_web(self, scope: List):
-        from requests_oauthlib import OAuth2Session
-
+    def _auth_user_web(self, scope: List) -> OAuth2Session:
         # Authorization
         client = OAuth2Session(self._connections[CLIENT_ID],
                                redirect_uri=self._connections[REDIRECT_URI],
@@ -137,15 +137,13 @@ class Auth:
                                token=token,
                                auto_refresh_url=self._connections[TOKEN_URL],
                                auto_refresh_kwargs={'client_id': self._connections[CLIENT_ID],
-                                                    'client_secret': self._connections[CLIENT_SECRET]},
+                                                    'client_secret': self._connections[CLIENT_SECRET]
+                                                    },
                                token_updater=lambda _: self.logger.debug("Updated token."))
 
         return client
 
     def _wait_for_response(self, uri: str) -> bytes:
-        import webbrowser
-        import socket
-
         webbrowser.open(uri)
 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -156,7 +154,7 @@ class Auth:
             while wait:
                 conn, (client_host, client_port) = s.accept()
                 self.logger.debug("Got connection from {} {}".format(client_host, client_port))
-                self.logger.info("Authentication complete.".format(client_host, client_port))
+                self.logger.info("Authentication complete.")
                 data = conn.recv(1000)
                 conn.send(b"HTTP/1.0 200 OK\n")
                 conn.send(b"Content-Type: text/html\n")
@@ -177,6 +175,3 @@ class Auth:
             self.logger.error("Error: {} - {}".format(error, description))
             raise HTTPException(description)
         return data.split("code=")[-1].split(" ")[0].split("&")[0]
-
-    def _format_endpoint(self, endpoint: str) -> str:
-        return endpoint.format(tenant=self.tenant)

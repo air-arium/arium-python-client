@@ -1,5 +1,6 @@
 from typing import List, Union, Dict
 
+from api_call.arium.util.currency_table import CurrencyTable
 from api_call.arium.util.filter import PortfolioFilter
 
 
@@ -47,14 +48,14 @@ class LossAllocationRequest:
     def set_currency_reference(self, reference: str):
         self.currency = {"ref": reference}
 
-    def set_currency(self, value: List):
-        self.currency = value
-
     def set_loss_allocation_reference(self, reference: str, portfolio: str):
         self.loss_allocation = {"ref": reference, "portfolio": {"ref": portfolio}}
 
     def set_reinsurance_reference(self, reference: str):
         self.reinsurance = {"ref": reference}
+
+    def set_currency(self, value: CurrencyTable):
+        self.currency = value
 
     def add_csv_export(self, export_type: str, characteristics: List[str], metrics: List[str]):
         if self.export is None:
@@ -69,7 +70,7 @@ class LossAllocationRequest:
         self.export["csv"].append(export)
 
     def add_scenario_reference(self, key: int, reference: str, scenario_id: str, portfolio: str,
-                               group_name: str = "", la_type: int = 0, occurrence: int = 0):
+                               group_name: str = "", la_type: int = 0, occurrence: float = 0):
         if self.loss_allocation is None:
             self.loss_allocation = {}
 
@@ -84,16 +85,19 @@ class LossAllocationRequest:
             self.loss_allocation[key]["scenarios"].append(
                 {"ref": reference, "portfolio": {"ref": portfolio}, "id": scenario_id})
 
-    def get_request(self):
+    def get(self):
         request = {
             "export": self.export,
             "numberOfRuns": self.number_of_runs,
             "randomSeed": self.random_seed,
             "reinsurance": self.reinsurance,
             "lossAllocation": self.loss_allocation,
-            "currency": self.currency
+            "currency": self._get_currency(),
         }
         return {key: value for key, value in request.items() if value is not None}
+
+    def _get_currency(self):
+        return self.currency.get()["currencies"] if isinstance(self.currency, CurrencyTable) else self.currency
 
 
 class Exposures:
