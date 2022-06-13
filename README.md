@@ -1,5 +1,7 @@
 # README #
 
+APAC - Arium Python Application Client
+
 ### What is this repository for? ###
 The project provides an example of how the Arium API can be used to create reusable scripts 
 for loss allocation. The project contains functions that can be used to make requests to the API. 
