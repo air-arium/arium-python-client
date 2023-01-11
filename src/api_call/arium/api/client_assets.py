@@ -1,8 +1,8 @@
+import json
 from typing import Optional, List, Dict, TYPE_CHECKING, Union
 
-from api_call.arium.api.request import asset_list, asset_get, asset_versions, asset_post, asset_rename, asset_copy, \
-    asset_lock, asset_delete, asset_get_payload_description, asset_update_payload_description, asset_get_data, \
-    asset_set_description, asset_get_description, asset_is_empty, asset_copy_workspace, asset_export, asset_import
+from api_call.arium.api import request
+from api_call.arium.util.perturbations import PerturbationsParameters, add_perturbations_parameters_to_scenario
 from config.constants import COLLECTION_PORTFOLIOS, COLLECTION_SCENARIOS, COLLECTION_SIZES, COLLECTION_PROGRAMMES, \
     COLLECTION_LAS, COLLECTION_CURRENCY_TABLES
 
@@ -15,107 +15,143 @@ class AssetsClient:
     def __init__(self, client: 'APIClient', collection: str):
         self.client = client
         self.collection = collection
+        self.this_list = None
 
     def list(self, latest: bool = True) -> Optional[List]:
-        return asset_list(client=self.client,
-                          collection=self.collection,
-                          latest=latest)
+        return request.asset_list(
+            client=self.client,
+            collection=self.collection,
+            latest=latest
+        )
 
     def get(self, asset_id: str) -> Optional[Dict]:
-        return asset_get(client=self.client,
-                         collection=self.collection,
-                         asset_id=asset_id)
+        return request.asset_get(
+            client=self.client,
+            collection=self.collection,
+            asset_id=asset_id
+        )
+
+    def get_by_name(self, asset_name: str, exact=True, refresh=True):
+        if self.this_list is None or refresh:
+            self.this_list = self.list()
+        if exact:
+            return [item for item in self.this_list if asset_name == item['name']]
+        return [item for item in self.this_list if asset_name in item['name']]
 
     def versions(self, asset_id: str) -> Optional[List]:
-        return asset_versions(client=self.client,
-                              collection=self.collection,
-                              asset_id=asset_id)
+        return request.asset_versions(
+            client=self.client,
+            collection=self.collection,
+            asset_id=asset_id
+        )
 
-    def create(self, asset_name, data: Union[Dict, str], wait=True, presigned=False) -> Optional[Dict]:
-        return asset_post(client=self.client,
-                          collection=self.collection,
-                          asset_name=asset_name,
-                          data=data,
-                          params=None,
-                          wait=True,
-                          presigned=presigned)
+    def create(self, asset_name: str, data: Union[Dict, str], wait=True, presigned=False) -> Optional[Dict]:
+        return request.asset_post(
+            client=self.client,
+            collection=self.collection,
+            asset_name=asset_name,
+            data=data,
+            presigned=presigned
+        )
 
     def delete(self, asset_id: str) -> Optional[Dict]:
-        return asset_delete(client=self.client,
-                            collection=self.collection,
-                            asset_id=asset_id)
+        return request.asset_delete(
+            client=self.client,
+            collection=self.collection,
+            asset_id=asset_id
+        )
 
     def rename(self, asset_id: str, asset_name: str):
-        asset_rename(client=self.client,
-                     collection=self.collection,
-                     asset_id=asset_id,
-                     asset_name=asset_name)
+        return request.asset_rename(
+            client=self.client,
+            collection=self.collection,
+            asset_id=asset_id,
+            asset_name=asset_name
+        )
 
     def set_description(self, asset_id: str, description: str):
-        asset_set_description(client=self.client,
-                              collection=self.collection,
-                              asset_id=asset_id,
-                              description=description)
+        return request.asset_set_description(
+            client=self.client,
+            collection=self.collection,
+            asset_id=asset_id,
+            description=description
+        )
 
     def get_description(self, asset_id: str) -> Optional[str]:
-        return asset_get_description(client=self.client,
-                                     collection=self.collection,
-                                     asset_id=asset_id)
+        return request.asset_get_description(
+            client=self.client,
+            collection=self.collection,
+            asset_id=asset_id
+        )
 
     def get_data(self, asset_id: str) -> Optional[bytes]:
-        return asset_get_data(client=self.client,
-                              collection=self.collection,
-                              asset_id=asset_id)
+        return request.asset_get_data(
+            client=self.client,
+            collection=self.collection,
+            asset_id=asset_id
+        )
 
     def copy(self, asset_id: str, asset_name: str) -> Optional[Dict]:
-        return asset_copy(client=self.client,
-                          collection=self.collection,
-                          asset_id=asset_id,
-                          asset_name=asset_name)
+        return request.asset_copy(
+            client=self.client,
+            collection=self.collection,
+            asset_id=asset_id,
+            asset_name=asset_name
+        )
 
     def lock(self, asset_id: str):
-        asset_lock(client=self.client,
-                   collection=self.collection,
-                   asset_id=asset_id,
-                   locked=True)
+        return request.asset_lock(
+            client=self.client,
+            collection=self.collection,
+            asset_id=asset_id,
+            locked=True
+        )
 
     def unlock(self, asset_id: str):
-        asset_lock(client=self.client,
-                   collection=self.collection,
-                   asset_id=asset_id,
-                   locked=False)
+        return request.asset_lock(
+            client=self.client,
+            collection=self.collection,
+            asset_id=asset_id,
+            locked=False
+        )
 
     def is_locked(self, asset_id: str) -> bool:
-        return asset_get(client=self.client,
-                         collection=self.collection,
-                         asset_id=asset_id)["locked"]
+        return request.asset_get(
+            client=self.client,
+            collection=self.collection,
+            asset_id=asset_id
+        )["locked"]
 
     def is_empty(self) -> bool:
-        return asset_is_empty(client=self.client,
-                              collection=self.collection)
+        return request.asset_is_empty(
+            client=self.client,
+            collection=self.collection
+        )
 
     def copy_workspace(self, from_tenant: str, to_tenant: str, asset_ids: List[str] = None) -> Optional[Dict]:
-        response = asset_copy_workspace(client=self.client,
-                                        collection=self.collection,
-                                        from_tenant=from_tenant,
-                                        to_tenant=to_tenant,
-                                        asset_ids=asset_ids,
-                                        wait=True)
-        return response
+        return request.asset_copy_workspace(
+            client=self.client,
+            collection=self.collection,
+            from_tenant=from_tenant,
+            to_tenant=to_tenant,
+            asset_ids=asset_ids
+        )
 
     def export_data(self, asset_ids: List[str], export_name: str = None, output_folder: str = "") -> Optional[Dict]:
-        response = asset_export(client=self.client,
-                                collection=self.collection,
-                                asset_ids=asset_ids,
-                                export_name=export_name,
-                                output_folder=output_folder)
-        return response
+        return request.asset_export(
+            client=self.client,
+            collection=self.collection,
+            asset_ids=asset_ids,
+            export_name=export_name,
+            output_folder=output_folder
+        )
 
     def import_data(self, path: str) -> Optional[Dict]:
-        response = asset_import(client=self.client,
-                                collection=self.collection,
-                                path=path)
-        return response
+        return request.asset_import(
+            client=self.client,
+            collection=self.collection,
+            path=path
+        )
 
 
 class PortfoliosClient(AssetsClient):
@@ -132,13 +168,15 @@ class PortfoliosClient(AssetsClient):
                 data = f.read()
 
         csv_date_format = "dd/mm/yyyy" if csv_date_format is None else csv_date_format
-        return asset_post(client=self.client,
-                          collection=self.collection,
-                          asset_name=asset_name,
-                          data=data,
-                          params={"csv_date_format": csv_date_format, "csv_has_header": has_header},
-                          presigned=True,
-                          wait=wait)
+        return request.asset_post(
+            client=self.client,
+            collection=self.collection,
+            asset_name=asset_name,
+            data=data,
+            params={"csv_date_format": csv_date_format, "csv_has_header": has_header},
+            presigned=True,
+            wait=wait
+        )
 
 
 class ScenariosClient(AssetsClient):
@@ -147,15 +185,34 @@ class ScenariosClient(AssetsClient):
         super().__init__(client=client, collection=COLLECTION_SCENARIOS)
 
     def set_payload_description(self, asset_id: str, payload_description: str):
-        asset_update_payload_description(client=self.client,
-                                         collection=self.collection,
-                                         asset_id=asset_id,
-                                         payload_description=payload_description)
+        return request.asset_update_payload_description(
+            client=self.client,
+            collection=self.collection,
+            asset_id=asset_id,
+            payload_description=payload_description
+        )
 
     def get_payload_description(self, asset_id: str) -> Optional[str]:
-        return asset_get_payload_description(client=self.client,
-                                             collection=self.collection,
-                                             asset_id=asset_id)
+        return request.asset_get_payload_description(
+            client=self.client,
+            collection=self.collection,
+            asset_id=asset_id
+        )
+
+    def update_perturbations(self, parameters: PerturbationsParameters, asset_name: str = None, asset_id: str = None):
+        if asset_id is None and asset_name is None:
+            raise AttributeError("Please define asset_id or asset_name!")
+
+        if asset_id is None:
+            asset_info = self.get_by_name(asset_name).pop()
+            asset_id = asset_info['id']
+        else:
+            asset_info = self.get(asset_id)
+            asset_name = asset_info['name']
+
+        scenario = json.loads(self.get_data(asset_id))
+        add_perturbations_parameters_to_scenario(parameters, scenario)
+        return self.create(asset_name, scenario)
 
 
 class SizesClient(AssetsClient):
@@ -171,13 +228,14 @@ class SizesClient(AssetsClient):
             with open(file) as f:
                 data = f.read()
 
-        return asset_post(client=self.client,
-                          collection=self.collection,
-                          asset_name=asset_name,
-                          data=data,
-                          params={"csv_has_header": has_header},
-                          presigned=True,
-                          wait=True)
+        return request.asset_post(
+            client=self.client,
+            collection=self.collection,
+            asset_name=asset_name,
+            data=data,
+            params={"csv_has_header": has_header},
+            presigned=True
+        )
 
 
 class ProgrammesClient(AssetsClient):

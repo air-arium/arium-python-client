@@ -7,21 +7,21 @@ from api_call.arium.util.filter import PortfolioFilter
 class Asset:
     __slots__ = '_asset', '_type'
 
-    def __init__(self, asset: Union[list, dict, str] = None, type: str = None) -> None:
+    def __init__(self, asset: Union[list, dict, str] = None, asset_type: str = None) -> None:
         self._asset = asset
-        self._type = type
+        self._type = asset_type
 
-    def set_type(self, type: str) -> None:
-        if type not in ['value', 'ref']:
+    def set_type(self, asset_type: str) -> None:
+        if asset_type not in ['value', 'ref']:
             raise ValueError("type '{}' not valid, expecting 'ref' or 'value'.")
-        self._type = type
+        self._type = asset_type
 
     def set_asset(self, asset: Union[list, dict, str]) -> None:
         self._asset = asset
 
-    def set(self, asset: Union[list, dict, str], type: str) -> None:
+    def set(self, asset: Union[list, dict, str], asset_type: str) -> None:
         self.set_asset(asset)
-        self.set_type(type)
+        self.set_type(asset_type)
 
     def __bool__(self):
         return self._asset is not None and self._type is not None
@@ -34,10 +34,15 @@ class LossAllocationRequest:
     def __init__(self):
         self.export = None
         self.number_of_runs = None
+        self.apply_multi_year = None
         self.random_seed = None
         self.reinsurance = None
         self.loss_allocation = None
         self.currency = None
+        self.size_data = None
+
+    def set_multi_year(self, apply_multiyear: bool):
+        self.apply_multi_year = apply_multiyear
 
     def set_number_of_runs(self, number_of_runs: int):
         self.number_of_runs = number_of_runs
@@ -56,6 +61,9 @@ class LossAllocationRequest:
 
     def set_currency(self, value: CurrencyTable):
         self.currency = value
+
+    def set_size_data(self, reference: str):
+        self.size_data = {"ref": reference}
 
     def add_csv_export(self, export_type: str, characteristics: List[str], metrics: List[str]):
         if self.export is None:
@@ -93,6 +101,8 @@ class LossAllocationRequest:
             "reinsurance": self.reinsurance,
             "lossAllocation": self.loss_allocation,
             "currency": self._get_currency(),
+            "sizeData": self.size_data,
+            "multiYear": self.apply_multi_year,
         }
         return {key: value for key, value in request.items() if value is not None}
 
@@ -111,14 +121,19 @@ class Exposures:
         self.filters = Asset()
         self.filters.set({'values': [], 'currency': 'USD'}, 'value')
 
-    def set_export(self, metrics: List[str], characteristics: List[str], type: str = "simulation",
-                   format: str = 'csv') -> None:
-        self.export.set({format: [{'type': type,
-                                   'characteristics': characteristics,
-                                   'metrics': metrics}]}, 'value')
+    def set_export(self, metrics: List[str], characteristics: List[str], export_type: str = "simulation",
+                   export_format: str = 'csv') -> None:
+        asset = {
+            export_format: [{
+                'type': export_type,
+                'characteristics': characteristics,
+                'metrics': metrics
+            }]
+        }
+        self.export.set(asset=asset, asset_type='value')
 
-    def add_filter(self, filter: PortfolioFilter):
-        self.filters.get()['values'].append(filter.get())
+    def add_filter(self, portfolio_filter: PortfolioFilter):
+        self.filters.get()['values'].append(portfolio_filter.get())
 
     def set_filter_currency(self, currency: str):
         self.filters.get()['currency'] = currency
@@ -143,7 +158,7 @@ class Exposures:
         for asset in ["portfolio", "export", "reinsurance", "currency", "filters"]:
             try:
                 request[asset] = getattr(self, asset).get()
-            except Exception as e:
+            except Exception:
                 raise ValueError("Missing '{}' object or reference.".format(asset))
 
         return request

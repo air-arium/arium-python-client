@@ -1,0 +1,20 @@
+import json
+
+from api_call.client import APIClient
+from auth.okta_auth import Auth
+
+# REQUIRED ACTION: Set connections
+# Note: please set <PREFIX>_CLIENT_ID, <PREFIX>_CLIENT_SECRET
+prefix = ""
+connections = {}
+
+# Create new client
+auth = Auth(tenant="workspace1", role="basic", connections=connections, prefix=prefix)
+client = APIClient(auth=auth)
+
+# REQUIRED ACTION: Select scenario id
+scenario_id = ""
+
+# Copy scenario
+scenario = client.scenarios().copy(scenario_id, f"{scenario_id}-copied")
+print(f"scenario: {json.dumps(scenario, sort_keys=True, indent=4)}")

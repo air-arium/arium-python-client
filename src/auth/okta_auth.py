@@ -1,5 +1,4 @@
 import json
-import logging.config
 import socket
 import sys
 import webbrowser
@@ -10,6 +9,35 @@ from oauthlib.oauth2 import BackendApplicationClient
 from requests_oauthlib import OAuth2Session
 
 from config.constants import *
+from config.get_logger import get_logger
+
+logger = get_logger(__name__)
+
+
+def _parse_response(data: str) -> str:
+    if "error" in data:
+        from http.client import HTTPException
+        state, error, description = data.split("&")
+        description = description.split("=")[1].split(" ")[0].replace("+", " ")
+        error = error.split("=")[-1]
+        logger.error("Error: {} - {}".format(error, description))
+        raise HTTPException(description)
+    return data.split("code=")[-1].split(" ")[0].split("&")[0]
+
+
+def _create_conn(connections: Dict):
+    audience = connections.pop(AUDIENCE, None)
+    issuer = connections.pop(ISSUER, None)
+    arium_environment = connections.pop(ARIUM_ENVIRONMENT, None)
+    pdca_environ = connections.pop(PDCA_ENVIRONMENT, None)
+
+    if issuer and audience:
+        connections[AUTHORIZATION_URL] = f"{issuer}/oauth2/{audience}/v1/authorize"
+        connections[TOKEN_URL] = f"{issuer}/oauth2/{audience}/v1/token"
+    if arium_environment:
+        connections[BASE_URI] = f"https://{arium_environment}.casualtyanalytics.co.uk/api"
+        if pdca_environ:
+            connections[BASE_URI_PDCA] = f"https://{arium_environment}.{pdca_environ}.casualtyanalytics.co.uk/api"
 
 
 class Auth:
@@ -20,21 +48,20 @@ class Auth:
         CLIENT_SECRET: None,
         AUTHORIZATION_URL: None,
         TOKEN_URL: None,
-        BASE_URI: None,
     }
 
     def __init__(self, tenant: str, role: str, connections: Union[Dict, str],
                  authorization_code: bool = True, prefix='', verify: bool = True):
+        logger.debug(f"Init Auth: {tenant}, {role}.")
+
         self.role = role
         self.tenant = tenant
         self._config_path = path.dirname(path.abspath(__file__))
         self.verify = verify
         self.client = None
 
-        logging.config.dictConfig(LOGGING_CONFIG)
-        self.logger = logging.getLogger(__name__)
-
         self._connections = self._get_conn(connections, prefix, authorization_code)
+        logger.info(f"Loaded connections: {self.connections()}")
         offline_access = authorization_code
 
         self._auth_user(offline_access, authorization_code)
@@ -46,42 +73,63 @@ class Auth:
         return self.get_dict().__str__()
 
     def connections(self) -> Dict:
-        return self._connections.copy()
+        return {k: v for k, v in self._connections.items() if k not in ('client_id', 'client_secret')}
 
     def get_dict(self) -> Dict:
         return {
             "tenant": self.tenant,
             "role": self.role,
-            "connections": {k: v for k, v in self._connections.items() if k not in ('client_id', 'client_secret')},
+            "connections": self.connections(),
         }
 
     def _get_conn(self, connections: Dict, prefix: str = None, authorization_code: bool = True) -> Dict:
-        default_c = Auth.DEFAULT_CONNECTIONS.copy()
+        logger.debug(f"Loading connections: {connections}")
+
+        c_with_default = Auth.DEFAULT_CONNECTIONS.copy()
 
         if isinstance(connections, str):
             with open(connections) as f:
+                logger.info(f"Loading connections from file: {connections}")
                 connections = json.load(f)
 
+        _create_conn(connections)
+
         if connections is not None:
-            default_c.update(connections)
+            c_with_default.update(connections)
 
         required_keys = list(Auth.DEFAULT_CONNECTIONS)
         if not authorization_code:
             required_keys.remove(AUTHORIZATION_URL)
-            del default_c[AUTHORIZATION_URL]
+            del c_with_default[AUTHORIZATION_URL]
 
-        if not all(default_c.values()):
-            self._conn_from_env(default_c, prefix)
-        if not all(default_c.values()):
-            self.logger.error("Failed to load the configuration. Configuration must include: {missing}!"
-                              .format(missing=', '.join({key for key in required_keys if not default_c[key]})))
+        if not all(c_with_default.values()):
+            self._conn_from_env(c_with_default, prefix)
+        else:
+            logger.warning(
+                "Client credentials not loaded from environment variables. "
+                "Please use environment variables for security reasons!"
+            )
+
+        if not all(c_with_default.values()):
+            missing = ', '.join({key for key in required_keys if not c_with_default[key]})
+            logger.error(f"Failed to load the configuration. Configuration must include: {missing}!")
             sys.exit(1)
 
-        default_c[REDIRECT_URI] = default_c[REDIRECT_URI].format(port=default_c[PORT])
-        return default_c
+        if BASE_URI not in c_with_default:
+            logger.warning(f"ARIUM client will not be initialized. '{BASE_URI}' was not defined. "
+                           f"Specify '{BASE_URI}' or '{ARIUM_ENVIRONMENT}' in connections.")
+
+        if BASE_URI_PDCA not in c_with_default:
+            logger.warning(f"PDCA client will not be initialized. '{BASE_URI_PDCA}' was not define. "
+                           f"Specify '{BASE_URI_PDCA}' "
+                           f"or '{ARIUM_ENVIRONMENT}' and '{PDCA_ENVIRONMENT}' in connections..")
+
+        c_with_default[REDIRECT_URI] = c_with_default[REDIRECT_URI].format(port=c_with_default[PORT])
+        return c_with_default
 
     @staticmethod
     def _conn_from_env(connections: Dict, prefix: str = None) -> Dict:
+        logger.debug(f"Prefix: {prefix}")
         prefix = '' if not prefix else prefix.replace("-", "_") + "_"
         for key in connections:
             connections[key] = environ.get(prefix + key, environ.get(key, connections[key]))
@@ -100,6 +148,8 @@ class Auth:
         self.client = self._auth_user_web(scope) if authorization_code else self._auth_user_backend(scope)
 
     def _auth_user_backend(self, scope: List) -> OAuth2Session:
+        logger.debug("Backend flow")
+
         # Authorization
         client = BackendApplicationClient(client_id=self._connections[CLIENT_ID])
         oauth = OAuth2Session(client=client,
@@ -115,18 +165,20 @@ class Auth:
                                auto_refresh_url=self._connections[TOKEN_URL],
                                auto_refresh_kwargs={'client_id': self._connections[CLIENT_ID],
                                                     'client_secret': self._connections[CLIENT_SECRET]},
-                               token_updater=lambda _: self.logger.debug("Updated token."))
+                               token_updater=lambda _: logger.debug("Updated token."))
 
         return client
 
     def _auth_user_web(self, scope: List) -> OAuth2Session:
+        logger.debug("Web flow (authorization code)")
+
         # Authorization
         client = OAuth2Session(self._connections[CLIENT_ID],
                                redirect_uri=self._connections[REDIRECT_URI],
                                scope=scope)
         url, state = client.authorization_url(url=self._connections[AUTHORIZATION_URL])
-        self.logger.debug("Authorization URL: {}".format(url))
-        code = self._parse_response(str(self._wait_for_response(url)))
+        logger.debug("Authorization URL: {}".format(url))
+        code = _parse_response(str(self._wait_for_response(url)))
 
         # Token
         token = client.fetch_token(self._connections[TOKEN_URL],
@@ -139,7 +191,7 @@ class Auth:
                                auto_refresh_kwargs={'client_id': self._connections[CLIENT_ID],
                                                     'client_secret': self._connections[CLIENT_SECRET]
                                                     },
-                               token_updater=lambda _: self.logger.debug("Updated token."))
+                               token_updater=lambda _: logger.debug("Updated token."))
 
         return client
 
@@ -147,31 +199,23 @@ class Auth:
         webbrowser.open(uri)
 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            self.logger.info("Please login. Waiting...")
+            logger.info("Please login. Waiting...")
             s.bind(("127.0.0.1", self._connections[PORT]))
             s.listen()
             wait = True
             while wait:
                 conn, (client_host, client_port) = s.accept()
-                self.logger.debug("Got connection from {} {}".format(client_host, client_port))
-                self.logger.info("Authentication complete.")
+                logger.debug("Got connection from {} {}".format(client_host, client_port))
+                logger.info("Authentication complete.")
                 data = conn.recv(1000)
                 conn.send(b"HTTP/1.0 200 OK\n")
                 conn.send(b"Content-Type: text/html\n")
                 conn.send(b"\n")
                 conn.send(
-                    b"""<html><body><h1>Authentication complete</h1><p>Please close this page.</p></body></html>""")
+                    b"""<html><body><h1>Authentication complete</h1>
+                    <p>Please close this page.</p></body></html>"""
+                )
                 conn.close()
                 wait = False
 
         return data
-
-    def _parse_response(self, data: str) -> str:
-        if "error" in data:
-            from http.client import HTTPException
-            state, error, description = data.split("&")
-            description = description.split("=")[1].split(" ")[0].replace("+", " ")
-            error = error.split("=")[-1]
-            self.logger.error("Error: {} - {}".format(error, description))
-            raise HTTPException(description)
-        return data.split("code=")[-1].split(" ")[0].split("&")[0]

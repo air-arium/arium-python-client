@@ -6,9 +6,8 @@ COLLECTION_SCENARIOS = "scenarios"
 COLLECTION_SIZES = "sizes"
 
 ENDPOINT_PORTFOLIO_UPLOADS = "portfolio_uploads"
-ENDPOINT_CALC_LA = "calculations/la"
-ENDPOINT_PERTURBATIONS = "calculations/perturbations"
-ENDPOINT_CALC_LA_EXPORT = "calculations/la-export"
+ENDPOINT_CALC_LA = "calculations/la/"
+ENDPOINT_PERTURBATIONS = "calculations/perturbations/"
 ENDPOINT_PORTFOLIO_DOWNLOAD = "calculations/portfoliodownload/{portfolio}"
 ENDPOINT_DICTIONARY = "dictionary"
 ENDPOINT_NODE_METRICS = "nodemetrics"
@@ -16,53 +15,22 @@ ENDPOINT_CALC_NODE_METRICS = "calculations/nodemetrics/{portfolio}"
 ENDPOINT_CALC_LA_PARAMETERS = "calculations/laparams/{portfolio}"
 ENDPOINT_PROPERTIES = "properties"
 ENDPOINT_CALC_CONNECTED_NODES = "calculations/connectednodes/{portfolio}"
-ENDPOINT_CALC_EXPOSURES = "calculations/exposures/"
 ENDPOINT_PROGRAMMES = "programmes"
-
 PORT = "port"
+
+ISSUER = "issuer"
+AUDIENCE = "audience"
+ARIUM_ENVIRONMENT = "arium_env"
+PDCA_ENVIRONMENT = "pdca_env"
 CLIENT_ID = "client_id"
 CLIENT_SECRET = "client_secret"
 AUTHORIZATION_URL = "authorization_url"
 TOKEN_URL = "token_url"
 BASE_URI = "base_uri"
+BASE_URI_PDCA = "base_uri_pdca"
 REDIRECT_URI = "redirect_uri"
 
-CONNECTIONS_FILE_TEMPLATE = "connections-{}.json"
 
-LOGGING_CONFIG = {
-    'version': 1,
-    'disable_existing_loggers': True,
-    'formatters': {
-        'standard': {
-            'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-        },
-    },
-    'handlers': {
-        'default': {
-            'level': 'INFO',
-            'formatter': 'standard',
-            'class': 'logging.StreamHandler',
-            'stream': 'ext://sys.stdout',
-        },
-    },
-    'loggers': {
-        '': {
-            'handlers': ['default'],
-            'level': 'INFO',
-            'propagate': False
-        },
-        'api_call': {
-            'handlers': ['default'],
-            'level': 'WARNING',
-            'propagate': False
-        },
-        'auth': {
-            'handlers': ['default'],
-            'level': 'INFO',
-            'propagate': False
-        },
-    }
-}
 ACCOUNT_NAME = 'accountname'
 ACCOUNT_NUMBER = 'accountnumber'
 HEADOFFICE_NAME = 'headofficename'

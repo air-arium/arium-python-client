@@ -1,14 +1,10 @@
-import logging.config
-from typing import TYPE_CHECKING, Dict, Generator, Any, Union
+from typing import TYPE_CHECKING, Dict, Union
 
-from requests import Response
-
-from api_call.arium.api.request import get_content_from_urls, upload, synchronous_endpoint_get, \
-    asynchronous_endpoint_csv, synchronous_endpoint_put, asynchronous_endpoint
+from api_call.arium.api.calculations import Calculations
 from config.constants import *
+from config.get_logger import get_logger
 
-logging.config.dictConfig(LOGGING_CONFIG)
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     from api_call.client import APIClient
@@ -16,7 +12,6 @@ if TYPE_CHECKING:
 
 class CalculationsClient:
     SUBJECT = {
-        "la-export": ENDPOINT_CALC_LA_EXPORT,
         "la": ENDPOINT_CALC_LA,
         "perturbations": ENDPOINT_PERTURBATIONS,
     }
@@ -24,108 +19,119 @@ class CalculationsClient:
     def __init__(self, client: 'APIClient'):
         self.client = client
 
-    def loss_allocation_boxplot(self, request_file: str = None, request: Dict = None) -> Generator[Any, None, None]:
-        logger.info("Loss allocation boxplot")
-        yield from self._calculations(request_file=request_file,
-                                      request=request,
-                                      subject="la")
+    def loss_allocation(self, request: Union[str, Dict], csv_output=True):
+        result = self._calculate_presigned(
+            subject='la',
+            request=request,
+            csv_output=csv_output,
+        )
 
-    def loss_allocation_export(self, request_file: str = None, request: Dict = None) -> Generator[Any, None, None]:
-        logger.info("Loss allocation export")
-        yield from self._calculations(request_file=request_file,
-                                      request=request,
-                                      subject="la-export")
-
-    def exposures(self, request_file: str = None, request: Dict = None) -> Generator[Any, None, None]:
-        logger.info("Loss allocation - exposures")
-        yield from asynchronous_endpoint_csv(client=self.client,
-                                             endpoint=ENDPOINT_CALC_EXPOSURES,
-                                             request_file=request_file,
-                                             request=request)
-
-    def perturbations(self, request_file: str = None, request: Dict = None) -> Generator[Any, None, None]:
-        logger.info("Perturbations")
-        yield from self._calculations(request_file=request_file,
-                                      request=request,
-                                      subject="perturbations")
-
-    def _calculations(self, request_file: str = None, request: Dict = None, loss_allocation_id: str = "la",
-                      subject: str = "la") -> Generator[Any, None, None]:
-        logger.info("Calculations")
-
-        data = {"id": loss_allocation_id, "description": loss_allocation_id, "headers": True}
-        csv_output = subject != "la"
-        la = self.SUBJECT[subject]
-
-        response = upload(client=self.client,
-                          url="/{{tenant}}/{la}/".format(la=la),
-                          data=data,
-                          request_file=request_file,
-                          request=request)
-        logger.debug("Response: {}".format(response))
-        yield from get_content_from_urls(client=self.client,
-                                         response=response,
-                                         csv_output=csv_output)
-
-    def node_metrics(self, request_file: str = None, request: Dict = None,
-                     portfolio: str = None, raw=False) -> Union[Response, Dict]:
-        if portfolio is None:
-            logger.info("Node metrics")
-            return synchronous_endpoint_put(client=self.client,
-                                            endpoint=ENDPOINT_NODE_METRICS,
-                                            request_file=request_file,
-                                            request=request,
-                                            raw=raw)
+        if csv_output:
+            yield from result
         else:
-            logger.info("Node metrics - calculations")
-            return asynchronous_endpoint(client=self.client,
-                                         endpoint=ENDPOINT_CALC_NODE_METRICS.format(portfolio=portfolio),
-                                         request_file=request_file,
-                                         request=request,
-                                         raw=raw)
+            result = next(next(result))
+            yield result
 
-    def connected_nodes(self, request_file: str = None, request: Dict = None, portfolio: str = None, raw=False):
-        logger.info("Connected nodes")
-        return asynchronous_endpoint(client=self.client,
-                                     endpoint=ENDPOINT_CALC_CONNECTED_NODES.format(portfolio=portfolio),
-                                     request_file=request_file,
-                                     request=request,
-                                     raw=raw)
+    def perturbations(self, request: Union[str, Dict]):
+        yield from self._calculate_presigned(
+            subject="perturbations",
+            request=request,
+        )
 
-    def dictionary(self, request_file: str = None, request: Dict = None, raw=False):
-        logger.info("Dictionary")
-        return synchronous_endpoint_put(client=self.client,
-                                        endpoint=ENDPOINT_DICTIONARY,
-                                        request_file=request_file,
-                                        request=request,
-                                        raw=raw)
+    def _calculate_presigned(self, subject: str, request: Union[str, Dict],
+                             csv_output: bool = True, raw: bool = False, presigned=True):
+        """
+        Note: This is a generator. From multiple presigned links.
+        """
+        logger.info(f"Endpoint (generator): {subject}, presigned={presigned}, raw={raw}, csv_output={csv_output}")
 
-    def properties(self, request_file: str = None, request: Dict = None, raw=False):
-        logger.info("Properties")
-        return synchronous_endpoint_put(client=self.client,
-                                        endpoint=ENDPOINT_PROPERTIES,
-                                        request_file=request_file,
-                                        request=request,
-                                        raw=raw)
+        results = self.get_calculations(
+            request=request,
+            subject=subject,
+            presigned=presigned,
+        ).pooling(client=self.client).get_results(csv_output=csv_output, raw=raw)
 
-    def la_params(self, request_file: str = None, request: Dict = None,
-                  portfolio: str = None) -> Generator[Any, None, None]:
-        logger.info("LA params")
-        return asynchronous_endpoint_csv(client=self.client,
-                                         endpoint=ENDPOINT_CALC_LA_PARAMETERS.format(portfolio=portfolio),
-                                         request_file=request_file,
-                                         request=request)
+        yield from results
 
-    def programmes(self, raw=False) -> Union[Response, Dict]:
-        logger.info("Programmes")
-        return synchronous_endpoint_get(client=self.client,
-                                        endpoint=ENDPOINT_PROGRAMMES,
-                                        raw=raw)
+    def _calculate_simple(self, subject: str, request: Union[str, Dict],
+                          csv_output: bool = True, raw: bool = False, presigned: bool = False):
+        """
+        Note: This function returns value. From content or one presigned link.
+        """
+        logger.info(f"Endpoint: {subject}, presigned={presigned}, raw={raw}, csv_output={csv_output}")
 
-    def portfolio_download(self, request_file: str = None, request: Dict = None,
-                           portfolio: str = None) -> Generator[Any, None, None]:
-        logger.info("Portfolio download")
-        return asynchronous_endpoint_csv(client=self.client,
-                                         endpoint=ENDPOINT_PORTFOLIO_DOWNLOAD.format(portfolio=portfolio),
-                                         request_file=request_file,
-                                         request=request)
+        results = self.get_calculations(
+            request=request,
+            subject=subject,
+            presigned=presigned,
+        ).pooling(self.client).get_results(csv_output=csv_output, raw=raw)
+
+        return next(results)
+
+    def get_calculations(self, request: Union[str, Dict], subject: str = "la", presigned: bool = True) -> Calculations:
+        calculations = Calculations(subject)
+        calculations.upload_request(
+            client=self.client,
+            request=request,
+            presigned=presigned
+        )
+        return calculations
+
+    def node_metrics(self, request: Union[str, Dict], portfolio: str = None, raw=False):
+
+        if portfolio is None:
+            subject = ENDPOINT_NODE_METRICS
+            presigned = False
+        else:
+            subject = ENDPOINT_CALC_NODE_METRICS.format(portfolio=portfolio)
+            presigned = True
+
+        return self._calculate_simple(
+            request=request,
+            subject=subject,
+            presigned=presigned,
+            raw=raw
+        )
+
+    def connected_nodes(self, request: Union[str, Dict], portfolio: str = None, raw=False):
+        return self._calculate_simple(
+            request=request,
+            subject=ENDPOINT_CALC_CONNECTED_NODES.format(portfolio=portfolio),
+            presigned=True,
+            raw=raw,
+        )
+
+    def dictionary(self, request: Union[str, Dict], raw=False):
+        return self._calculate_simple(
+            request=request,
+            subject=ENDPOINT_DICTIONARY,
+            raw=raw,
+        )
+
+    def properties(self, request: Union[str, Dict], raw=False):
+        return self._calculate_simple(
+            request=request,
+            subject=ENDPOINT_PROPERTIES,
+            raw=raw,
+        )
+
+    def la_params(self, request: Union[str, Dict], portfolio: str = None):
+        return self._calculate_simple(
+            request=request,
+            subject=ENDPOINT_CALC_LA_PARAMETERS.format(portfolio=portfolio),
+            presigned=True
+        )
+
+    def programmes(self, raw=False):
+        return self._calculate_simple(
+            request={},
+            subject=ENDPOINT_PROGRAMMES,
+            raw=raw
+        )
+
+    def portfolio_download(self, request: Union[str, Dict], portfolio: str = None):
+        return self._calculate_simple(
+            subject=ENDPOINT_PORTFOLIO_DOWNLOAD.format(portfolio=portfolio),
+            request=request,
+            presigned=True,
+        )

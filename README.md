@@ -1,6 +1,4 @@
-# README #
-
-APAC - Arium Python Application Client
+# README 1.13.0# 
 
 ### What is this repository for? ###
 The project provides an example of how the Arium API can be used to create reusable scripts 
@@ -35,5 +33,5 @@ client = APIClient(auth=auth)
 client.portfolios().list()
 ``` 
 
-Here the Okta authetication on browser should kick off.
+Here the Okta authentication on browser should kick off.
 
