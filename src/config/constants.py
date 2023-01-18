@@ -21,13 +21,11 @@ PORT = "port"
 ISSUER = "issuer"
 AUDIENCE = "audience"
 ARIUM_ENVIRONMENT = "arium_env"
-PDCA_ENVIRONMENT = "pdca_env"
 CLIENT_ID = "client_id"
 CLIENT_SECRET = "client_secret"
 AUTHORIZATION_URL = "authorization_url"
 TOKEN_URL = "token_url"
 BASE_URI = "base_uri"
-BASE_URI_PDCA = "base_uri_pdca"
 REDIRECT_URI = "redirect_uri"
 
 

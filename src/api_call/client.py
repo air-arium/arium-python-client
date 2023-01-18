@@ -5,7 +5,6 @@ from requests import Response
 from api_call.arium.api.client_assets import PortfoliosClient, ScenariosClient, SizesClient, ProgrammesClient, \
     CurrencyTablesClient, LAsClient, AssetsClient
 from api_call.arium.api.client_calculations import CalculationsClient
-from api_call.arium.api.pdca_client import PDCAClient
 from auth.okta_auth import Auth
 from config.constants import *
 from config.get_logger import get_logger

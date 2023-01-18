@@ -29,15 +29,12 @@ def _create_conn(connections: Dict):
     audience = connections.pop(AUDIENCE, None)
     issuer = connections.pop(ISSUER, None)
     arium_environment = connections.pop(ARIUM_ENVIRONMENT, None)
-    pdca_environ = connections.pop(PDCA_ENVIRONMENT, None)
 
     if issuer and audience:
         connections[AUTHORIZATION_URL] = f"{issuer}/oauth2/{audience}/v1/authorize"
         connections[TOKEN_URL] = f"{issuer}/oauth2/{audience}/v1/token"
     if arium_environment:
         connections[BASE_URI] = f"https://{arium_environment}.casualtyanalytics.co.uk/api"
-        if pdca_environ:
-            connections[BASE_URI_PDCA] = f"https://{arium_environment}.{pdca_environ}.casualtyanalytics.co.uk/api"
 
 
 class Auth:
@@ -118,11 +115,6 @@ class Auth:
         if BASE_URI not in c_with_default:
             logger.warning(f"ARIUM client will not be initialized. '{BASE_URI}' was not defined. "
                            f"Specify '{BASE_URI}' or '{ARIUM_ENVIRONMENT}' in connections.")
-
-        if BASE_URI_PDCA not in c_with_default:
-            logger.warning(f"PDCA client will not be initialized. '{BASE_URI_PDCA}' was not define. "
-                           f"Specify '{BASE_URI_PDCA}' "
-                           f"or '{ARIUM_ENVIRONMENT}' and '{PDCA_ENVIRONMENT}' in connections..")
 
         c_with_default[REDIRECT_URI] = c_with_default[REDIRECT_URI].format(port=c_with_default[PORT])
         return c_with_default
