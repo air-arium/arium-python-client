@@ -40,6 +40,13 @@ class LossAllocationRequest:
         self.loss_allocation = None
         self.currency = None
         self.size_data = None
+        self.min_groundup_loss = None
+
+    def set_min_groundup_loss(self, min_groundup_loss: float):
+        if min_groundup_loss < 10000:
+            raise ValueError('Minimum ground-up loss value should be >= 10000')
+
+        self.min_groundup_loss = min_groundup_loss
 
     def set_multi_year(self, apply_multiyear: bool):
         self.apply_multi_year = apply_multiyear
@@ -103,6 +110,7 @@ class LossAllocationRequest:
             "currency": self._get_currency(),
             "sizeData": self.size_data,
             "multiYear": self.apply_multi_year,
+            "minimumGroundup": self.min_groundup_loss
         }
         return {key: value for key, value in request.items() if value is not None}
 
