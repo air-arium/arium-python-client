@@ -25,8 +25,9 @@ request.set_loss_allocation_reference(reference=la_id, portfolio=portfolio_id)
 currency_eur = Currency(code="EUR", rate=1.0)
 currency_table = CurrencyTable(name="CurrencyTable", currencies=[currency_eur])
 request.set_currency(currency_table)
-request.set_number_of_runs(10000)
+request.set_number_of_runs(1000)
 request.set_random_seed(1)
+request.set_min_groundup_loss(10005)
 request.add_csv_export(
     export_type='simulation',
     characteristics=['ScenarioId'],
