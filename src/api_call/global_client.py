@@ -4,17 +4,19 @@ if TYPE_CHECKING:
     from api_call.client import APIClient
 
 
-def set_client(client: 'APIClient', workspace):
+def set_client(client: "APIClient", workspace):
     global global_client
     if global_client is None:
         global_client = {}
     global_client[workspace] = client
 
 
-def get_client(workspace="workspace2") -> Union[None, 'APIClient']:
+def get_client(workspace) -> Union[None, "APIClient"]:
     global global_client
     if isinstance(global_client, dict):
-        return global_client.get(workspace, global_client[list(global_client.keys())[-1]])
+        return global_client.get(
+            workspace, global_client[list(global_client.keys())[-1]]
+        )
     return None
 
 

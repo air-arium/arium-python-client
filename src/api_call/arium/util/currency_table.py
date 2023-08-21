@@ -8,11 +8,7 @@ class Currency:
         self.base = base
 
     def get(self) -> Dict:
-        return {
-            "code": self.code,
-            "rate": self.rate,
-            "base": self.base
-        }
+        return {"code": self.code, "rate": self.rate, "base": self.base}
 
     def compare_code(self, code):
         return self.code == code.upper()
@@ -34,7 +30,4 @@ class CurrencyTable:
         self.name = name
 
     def get(self) -> Dict:
-        return {
-            "currencies": [c.get() for c in self.currencies],
-            "name": self.name
-        }
+        return {"currencies": [c.get() for c in self.currencies], "name": self.name}

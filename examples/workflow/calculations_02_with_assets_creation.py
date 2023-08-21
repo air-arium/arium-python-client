@@ -5,24 +5,24 @@ from api_call.arium.util.currency_table import Currency, CurrencyTable
 from api_call.client import APIClient
 from auth.okta_auth import Auth
 
-# REQUIRED ACTION: Set connections
+# REQUIRED ACTION: Set settings
 # Note: please set <PREFIX>_CLIENT_ID, <PREFIX>_CLIENT_SECRET
 prefix = ""
-connections = {}
+settings = {}
 
 # Create new client
-auth = Auth(tenant="workspace1", role="basic", connections=connections, prefix=prefix)
+auth = Auth(tenant="workspace1", role="basic", settings=settings, prefix=prefix)
 client = APIClient(auth=auth)
 
-# REQUIRED ACTION: Define assets
-currency_table_name = 'c1'
-currency_file = './data/currency/currency.csv'
+# Define assets
+currency_table_name = "c1"
+currency_file = "./data/currency/currency.csv"
 
-portfolio_name = '362'
-portfolio_file = './data/portfolio/362.csv'
+portfolio_name = "362"
+portfolio_file = "./data/portfolio/362.csv"
 
-la_name = 'AllHistoricalScenarios 2021-Q3'
-la_file = './data/la/AllHistoricalScenarios 2021-Q3.json'
+la_name = "AllHistoricalScenarios 2021-Q3"
+la_file = "./data/la/AllHistoricalScenarios 2021-Q3.json"
 
 # Request (define export)
 request = {
@@ -30,11 +30,7 @@ request = {
         "csv": [
             {
                 "type": "simulation",
-                "characteristics": [
-                    "PolicyType",
-                    "ScenarioId",
-                    "PolicyNumber"
-                ],
+                "characteristics": ["PolicyType", "ScenarioId", "PolicyNumber"],
                 "metrics": [
                     "InsuredLoss",
                     "EconomicLoss",
@@ -42,15 +38,15 @@ request = {
                     "NonEconomicLoss",
                     "AggregatesDamaged",
                     "AccountId",
-                    "UniquePolicyId"
-                ]
+                    "UniquePolicyId",
+                ],
             }
         ]
     },
     "numberOfRuns": 1000,
     "randomSeed": 1,
     "lossAllocation": {},
-    "currency": {}
+    "currency": {},
 }
 
 
@@ -64,7 +60,7 @@ def create_portfolio(portfolio_name, portfolio_filepath):
 
     # Portfolio is a dictionary with portfolio parameters
     # Get id (reference) from this dictionary
-    return portfolio['id']
+    return portfolio["id"]
 
 
 def create_currency(currency_name, currency_file):
@@ -82,11 +78,13 @@ def create_currency(currency_name, currency_file):
     currency_table = CurrencyTable(name=currency_name, currencies=currency_list)
 
     # Create currency table resource
-    return client.currency_tables().create(asset_name=currency_table_name, data=currency_table.get())['id']
+    return client.currency_tables().create(
+        asset_name=currency_table_name, data=currency_table.get()
+    )["id"]
 
 
 # Get list of portfolio names
-portfolios = {p['name']: p['id'] for p in client.portfolios().list()}
+portfolios = {p["name"]: p["id"] for p in client.portfolios().list()}
 if portfolio_name not in portfolios:
     # Create portfolio (only if does not exist yet)
     portfolio_id = create_portfolio(portfolio_name, portfolio_file)
@@ -95,7 +93,7 @@ else:
     portfolio_id = portfolios[portfolio_name]
 
 # Get list of currency names
-currencies = {c['name']: c['id'] for c in client.currency_tables().list()}
+currencies = {c["name"]: c["id"] for c in client.currency_tables().list()}
 if currency_file not in currencies:
     # Create currency (only if does not exist yet)
     currency_id = create_currency(currency_table_name, currency_file)
@@ -104,19 +102,21 @@ else:
     currency_id = currencies[currency_table_name]
 
 # Get list of las names
-las = {c['name']: c['id'] for c in client.loss_allocations().list()}
+las = {c["name"]: c["id"] for c in client.loss_allocations().list()}
 if la_name not in las:
     # Create la (only if does not exist yet)
     with open(la_file) as file:
-        la_id = client.loss_allocations().create(asset_name=la_name, data=file.read(), presigned=True)['id']
+        la_id = client.loss_allocations().create(
+            asset_name=la_name, data=file.read(), presigned=True
+        )["id"]
 else:
     # La exists, read the id
     la_id = las[la_name]
 
 # Update the request
-request['lossAllocation']['portfolio'] = {"ref": portfolio_id}
-request['currency']['ref'] = currency_id
-request['lossAllocation']['ref'] = la_id
+request["lossAllocation"]["portfolio"] = {"ref": portfolio_id}
+request["currency"]["ref"] = currency_id
+request["lossAllocation"]["ref"] = la_id
 
 # Print the updated request
 print(json.dumps(request, indent=4))

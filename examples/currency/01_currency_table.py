@@ -4,13 +4,13 @@ from api_call.arium.util.currency_table import Currency, CurrencyTable
 from api_call.client import APIClient
 from auth.okta_auth import Auth
 
-# REQUIRED ACTION: Set connections
+# REQUIRED ACTION: Set settings
 # Note: please set <PREFIX>_CLIENT_ID, <PREFIX>_CLIENT_SECRET
 prefix = ""
-connections = {}
+settings = {}
 
 # Create new client
-auth = Auth(tenant="workspace1", role="basic", connections=connections, prefix=prefix)
+auth = Auth(tenant="workspace1", role="basic", settings=settings, prefix=prefix)
 client = APIClient(auth=auth)
 
 # Create dictionaries representing currencies
@@ -24,5 +24,7 @@ currency_table_name = "My currency"
 currency_table = CurrencyTable(name=currency_table_name, currencies=currency_list)
 
 # Create currency table resource
-asset_data = client.currency_tables().create(asset_name=currency_table_name, data=currency_table.get())
+asset_data = client.currency_tables().create(
+    asset_name=currency_table_name, data=currency_table.get()
+)
 print(f"currency table: {json.dumps(asset_data, indent=4)}")

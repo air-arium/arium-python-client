@@ -3,13 +3,13 @@ from api_call.arium.util.loss_allocation_request import LossAllocationRequest
 from api_call.client import APIClient
 from auth.okta_auth import Auth
 
-# REQUIRED ACTION: Set connections
+# REQUIRED ACTION: Set settings
 # Note: please set <PREFIX>_CLIENT_ID, <PREFIX>_CLIENT_SECRET
 prefix = ""
-connections = {}
+settings = {}
 
 # Create new client
-auth = Auth(tenant="workspace1", role="basic", connections=connections, prefix=prefix)
+auth = Auth(tenant="workspace1", role="basic", settings=settings, prefix=prefix)
 client = APIClient(auth=auth)
 
 # REQUIRED ACTION: Select loss allocation id
@@ -28,9 +28,7 @@ request.set_currency(currency_table)
 request.set_number_of_runs(10000)
 request.set_random_seed(1)
 request.add_csv_export(
-    export_type='simulation',
-    characteristics=['ScenarioId'],
-    metrics=['GrossLoss']
+    export_type="simulation", characteristics=["ScenarioId"], metrics=["GrossLoss"]
 )
 
 # Run calculations

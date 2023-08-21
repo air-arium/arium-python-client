@@ -3,13 +3,13 @@ import json
 from api_call.client import APIClient
 from auth.okta_auth import Auth
 
-# REQUIRED ACTION: Set connections
+# REQUIRED ACTION: Set settings
 # Note: please set <PREFIX>_CLIENT_ID, <PREFIX>_CLIENT_SECRET
 prefix = ""
-connections = {}
+settings = {}
 
 # Create new client
-auth = Auth(tenant="workspace1", role="basic", connections=connections, prefix=prefix)
+auth = Auth(tenant="workspace1", role="basic", settings=settings, prefix=prefix)
 client = APIClient(auth=auth)
 print(client)
 
@@ -47,5 +47,3 @@ print(f"portfolios: {json.dumps(portfolios_list, sort_keys=True, indent=4)}")
 # Non existing scenario case
 print("ERROR")
 scenario_full = client.scenarios().get("not_a_valid_reference")
-
-

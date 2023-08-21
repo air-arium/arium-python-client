@@ -1,13 +1,20 @@
 from api_call.client import APIClient
 from auth.okta_auth import Auth
 
-# REQUIRED ACTION: Set connections
+# REQUIRED ACTION: Set settings
 # Note: please set <PREFIX>_CLIENT_ID, <PREFIX>_CLIENT_SECRET
 prefix = ""
 file = ""
 
 # Create new Auth
-auth = Auth(tenant="workspace1", role="basic", connections=file, prefix=prefix, authorization_code=False)
+# Note: please set <PREFIX>_CLIENT_ID, <PREFIX>_CLIENT_SECRET
+auth = Auth(
+    tenant="workspace1",
+    role="basic",
+    settings=file,
+    prefix=prefix,
+    authorization_code=False,
+)
 
 # Create client
 client = APIClient(auth=auth)

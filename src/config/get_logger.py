@@ -3,7 +3,7 @@ import os
 
 
 def get_logger(logger_class="apac") -> logging.Logger:
-    if logger_class.split('.')[0] not in logging.Logger.manager.loggerDict:
+    if logger_class.split(".")[0] not in logging.Logger.manager.loggerDict:
         logger_class = "apac"
     if logger_class not in get_logger.loggers:
         logger = logging.getLogger(logger_class)
@@ -12,28 +12,30 @@ def get_logger(logger_class="apac") -> logging.Logger:
 
 
 try:
-    logging.config.fileConfig(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logging_config.ini'))
-except Exception as e:
+    logging.config.fileConfig(
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "logging_config.ini")
+    )
+except (KeyError, FileNotFoundError) as e:
     try:
-        logging.config.fileConfig('logging_config.ini')
-    except KeyError as e:
+        logging.config.fileConfig("logging_config.ini")
+    except (KeyError, FileNotFoundError) as e:
         DEFAULT_LOGGING = {
-            'version': 1,
-            'disable_existing_loggers': False,
-            'loggers': {
-                '': {
-                    'level': 'INFO',
+            "version": 1,
+            "disable_existing_loggers": False,
+            "loggers": {
+                "": {
+                    "level": "INFO",
                 },
-                'root': {
-                    'level': 'INFO',
+                "root": {
+                    "level": "INFO",
                 },
-                'apac': {
-                    'level': 'INFO',
+                "apac": {
+                    "level": "INFO",
                 },
-                'auth': {
-                    'level': 'INFO',
+                "auth": {
+                    "level": "INFO",
                 },
-            }
+            },
         }
         logging.config.dictConfig(DEFAULT_LOGGING)
 
