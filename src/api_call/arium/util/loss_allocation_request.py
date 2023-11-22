@@ -1,4 +1,4 @@
-from typing import List, Union, Dict
+from typing import List, Union, Dict, Optional
 
 from api_call.arium.util.currency_table import CurrencyTable
 from api_call.arium.util.filter import PortfolioFilter
@@ -44,12 +44,16 @@ class LossAllocationRequest:
         self.currency = None
         self.size_data = None
         self.min_groundup_loss = None
+        self.bulk_set_equal_weighted = None
 
     def set_min_groundup_loss(self, min_groundup_loss: float):
         if min_groundup_loss < 10000:
             raise ValueError("Minimum ground-up loss value should be >= 10000")
 
         self.min_groundup_loss = min_groundup_loss
+
+    def set_bulk_equal_weighted(self, bulk_set_equal_weighted: bool):
+        self.bulk_set_equal_weighted = bulk_set_equal_weighted
 
     def set_multi_year(self, apply_multiyear: bool):
         self.apply_multi_year = apply_multiyear
@@ -94,39 +98,44 @@ class LossAllocationRequest:
 
     def add_scenario_reference(
         self,
-        key: int,
+        index: int,
         reference: str,
-        scenario_id: str,
         portfolio: str,
+    ):
+        scenario = {
+            "ref": reference,
+            "portfolio": {"ref": portfolio},
+        }
+        self.loss_allocation["groups"][index]["scenarios"].append(scenario)
+
+    def create_group(
+        self,
         group_name: str = "",
-        la_type: int = 0,
-        occurrence: float = 0,
+        equal_weighted: Optional[bool] = None,
+        freq_param_key: Optional[str] = None,
+        frequency: Optional[float] = None,
     ):
         if self.loss_allocation is None:
-            self.loss_allocation = {}
+            self.loss_allocation = {"groups": []}
 
-        if key not in self.loss_allocation:
-            self.loss_allocation[key] = {
-                "groupName": group_name,
-                "type": la_type,
-                "occurrence": occurrence,
-                "scenarios": [
-                    {
-                        "ref": reference,
-                        "portfolio": {"ref": portfolio},
-                        "id": scenario_id,
-                    }
-                ],
-            }
-        else:
-            self.loss_allocation[key]["scenarios"].append(
-                {"ref": reference, "portfolio": {"ref": portfolio}, "id": scenario_id}
-            )
+        settings = {
+            "frequency": frequency,
+            "equalWeighted": equal_weighted,
+            "freqParamKey": freq_param_key,
+        }
+        group = {
+            "title": group_name,
+            "settings": {k: v for k, v in settings.items() if v is not None},
+            "scenarios": [],
+        }
+        self.loss_allocation["groups"].append(group)
+        return len(self.loss_allocation["groups"]) - 1  # new group index
 
     def get(self):
         request = {
             "export": self.export,
             "numberOfRuns": self.number_of_runs,
+            "bulkSetEqualWeighted": self.bulk_set_equal_weighted,
             "randomSeed": self.random_seed,
             "totalLoss": self.total_loss,
             "reinsurance": self.reinsurance,

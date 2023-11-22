@@ -148,7 +148,7 @@ class Auth:
 
         if BASE_URI_PDCA not in s_with_default:
             logger.warning(
-                f"PDCA client will not be initialized. '{BASE_URI_PDCA}' was not define. "
+                f"PDCA client will not be initialized. '{BASE_URI_PDCA}' was not defined. "
                 f"Specify '{BASE_URI_PDCA}' "
                 f"or '{AUDIENCE}' and '{AUDIENCE_PDCA}' in auth settings.."
             )

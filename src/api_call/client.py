@@ -13,6 +13,7 @@ from api_call.arium.api.client_assets import (
 )
 from api_call.arium.api.client_calculations import CalculationsClient
 from api_call.arium.api.pdca_client import PDCAClient
+from api_call.arium.api.client_refdata import RefDataClient
 from auth.okta_auth import Auth
 from config.constants import *
 from config.get_logger import get_logger
@@ -27,6 +28,7 @@ class APIClient:
         self._assets_clients = None
         self._calculations_client = None
         self._pdca_client = None
+        self._refdata_client = None
 
         if BASE_URI in self._auth.settings():
             self._assets_clients = {
@@ -38,6 +40,7 @@ class APIClient:
                 COLLECTION_SIZES: SizesClient(self),
             }
             self._calculations_client = CalculationsClient(self)
+            self._refdata_client = RefDataClient(self)
 
         if BASE_URI_PDCA in self._auth.settings():
             self._pdca_client = PDCAClient(self)
@@ -79,6 +82,9 @@ class APIClient:
                 f"Reason: ARIUM {BASE_URI} wasn't defined. "
                 f"Specify the '{BASE_URI}' or '{AUDIENCE}' in auth settings."
             )
+
+    def refdata(self) -> RefDataClient:
+        return self._refdata_client
 
     def assets(self, collection: str) -> AssetsClient:
         self._checks_client()
