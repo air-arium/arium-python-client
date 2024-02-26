@@ -12,8 +12,9 @@ from api_call.arium.api.client_assets import (
     AssetsClient,
 )
 from api_call.arium.api.client_calculations import CalculationsClient
-from api_call.arium.api.pdca_client import PDCAClient
 from api_call.arium.api.client_refdata import RefDataClient
+from api_call.arium.api.pdca_client import PDCAClient
+from api_call.arium.api.request import retry
 from auth.okta_auth import Auth
 from config.constants import *
 from config.get_logger import get_logger
@@ -137,6 +138,7 @@ class APIClient:
             )
         return url, headers
 
+    @retry(times=10)
     def _request(
         self,
         method: str,
@@ -149,9 +151,11 @@ class APIClient:
         endpoint = self._format_endpoint(endpoint)
         url += endpoint
         logger.debug(f"method: {method} url: {url} headers: {headers}")
-        return self.method_fun[method](
+        resp = self.method_fun[method](
             url=url, headers=headers, verify=self._auth.verify, **kwargs
         )
+        resp.close()
+        return resp
 
     def get_request(
         self, endpoint: str, url: str = None, headers: Dict = None, **kwargs

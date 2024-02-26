@@ -10,6 +10,7 @@ from api_call.arium.api.request import (
     get_request_data,
     calc_polling,
     get_content_from_url,
+    retry,
 )
 from config.constants import ENDPOINT_CALC_LA, ENDPOINT_PERTURBATIONS
 from config.get_logger import get_logger
@@ -34,6 +35,7 @@ class Calculations:
         self.location = None
         self.upload_response = None
         self.results_urls = []
+        self.traceability_id = None
 
     def _get_presigned_upload(self, client: "APIClient", url: str):
         try:
@@ -55,6 +57,7 @@ class Calculations:
 
         return upload_url
 
+    @retry(times=10)
     def upload_request(
         self,
         client: "APIClient",
@@ -79,7 +82,9 @@ class Calculations:
                 data=request,
                 headers={"Content-Type": ""},
                 verify=False,
+                timeout=15,
             )
+            self.upload_response.close()
         else:
             self.upload_response = client.put_request(endpoint=endpoint, json=request)
 
@@ -95,6 +100,13 @@ class Calculations:
             content = get_content(response=response)
 
             self.results_urls = content.get("urls", [content["url"]])
+
+            try:
+                r = rf"calculation.Result./{client.get_workspace()}/(.*?)/"
+                self.traceability_id = re.search(r, self.results_urls[-1]).group(1)
+                logger.info(f"Traceability id: {self.traceability_id}")
+            except AttributeError:
+                pass
 
         return self
 

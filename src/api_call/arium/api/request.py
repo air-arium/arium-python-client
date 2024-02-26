@@ -19,7 +19,36 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+def retry(times):
+    """
+    Retries the wrapped function.
+    :param times: The number of times to repeat
+    """
+
+    def decorator(func):
+        def f(*args, **kwargs):
+            delay = 1
+            attempt = 0
+            while attempt < times:
+                try:
+                    return func(*args, **kwargs)
+                except requests.exceptions.ConnectionError as e:
+                    print(
+                        "Connection error thrown when attempting to run %s, attempt "
+                        "%d of %d" % (func.__name__, attempt + 1, times)
+                    )
+                    attempt += 1
+                    sleep(delay)
+                    delay *= 2
+            return func(*args, **kwargs)
+
+        return f
+
+    return decorator
+
+
 @exception_handler
+@retry(times=10)
 def get_content(
     response, accept=None, load=True, get_from_location=True, verify=True
 ) -> Union[bytes, str, Dict]:
@@ -30,7 +59,7 @@ def get_content(
         if get_from_location:
             location_header = response.headers.get("Location", None)
             if location_header:
-                response = requests.get(url=location_header, verify=verify)
+                response = requests.get(url=location_header, verify=verify, timeout=15)
         content = response.content
         if not load:
             return content
@@ -44,11 +73,12 @@ def get_content(
         raise AriumAPACResponseException(response)
 
 
+@retry(times=10)
 def get_content_from_url(
     url: str, csv_output: bool = False, raw: bool = False, delimiter: str = ","
 ) -> Generator[Any, None, None]:
     if csv_output:
-        with requests.get(url, verify=False) as resp:
+        with requests.get(url, verify=False, timeout=15) as resp:
             if raw:
                 yield resp
             else:
@@ -58,9 +88,11 @@ def get_content_from_url(
                 )
                 for row in reader:
                     yield row
+            resp.close()
     else:
-        with requests.get(url) as resp:
+        with requests.get(url, timeout=15) as resp:
             yield resp if raw else get_content(resp)
+            resp.close()
 
 
 def get_resources(
@@ -122,7 +154,7 @@ def asset_set_description(
 @exception_handler
 def asset_rename(
     client: "APIClient", collection: str, asset_id: str, asset_name: str
-) -> Optional[Dict]:
+) -> Optional[Any]:
     endpoint = f"/{{tenant}}/{collection}/assets/{asset_id}/move?assetName={asset_name}"
     response = client.put_request(endpoint=endpoint)
     content = get_content(response=response)
@@ -290,6 +322,7 @@ def asset_export(
 
 
 @exception_handler
+@retry(times=10)
 def asset_import(
     client: "APIClient", collection: str, path: str, wait: bool = True
 ) -> Optional[str]:
@@ -300,7 +333,9 @@ def asset_import(
     content = get_content(response=response, get_from_location=False)
 
     with open(path) as file:
-        requests.put(url=location_header, data=file.read().encode("utf-8").strip())
+        requests.put(
+            url=location_header, data=file.read().encode("utf-8").strip(), timeout=15
+        ).close()
 
     logger.info("Import request started.")
 
@@ -339,6 +374,7 @@ def asset_get_data(
 
 
 @exception_handler
+@retry(times=10)
 def asset_post(
     client: "APIClient",
     collection,
@@ -370,7 +406,7 @@ def asset_post(
     else:
         logger.info(f"Uploading {collection}/{asset_name}.")
         data = data.encode("utf-8").strip()
-        requests.put(url=location_header, data=data, verify=verify)
+        requests.put(url=location_header, data=data, verify=verify, timeout=15).close()
 
         if wait:
             asset_polling(client=client, collection=collection, asset_id=content["id"])
