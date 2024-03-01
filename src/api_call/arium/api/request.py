@@ -406,7 +406,7 @@ def asset_post(
     else:
         logger.info(f"Uploading {collection}/{asset_name}.")
         data = data.encode("utf-8").strip()
-        requests.put(url=location_header, data=data, verify=verify, timeout=15).close()
+        requests.put(url=location_header, data=data, verify=verify).close()
 
         if wait:
             asset_polling(client=client, collection=collection, asset_id=content["id"])
