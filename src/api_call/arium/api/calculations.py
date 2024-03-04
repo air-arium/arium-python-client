@@ -82,7 +82,7 @@ class Calculations:
                 data=request,
                 headers={"Content-Type": ""},
                 verify=False,
-                timeout=15,
+
             )
             self.upload_response.close()
         else:

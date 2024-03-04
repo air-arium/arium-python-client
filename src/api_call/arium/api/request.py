@@ -59,7 +59,7 @@ def get_content(
         if get_from_location:
             location_header = response.headers.get("Location", None)
             if location_header:
-                response = requests.get(url=location_header, verify=verify, timeout=15)
+                response = requests.get(url=location_header, verify=verify)
         content = response.content
         if not load:
             return content
@@ -78,7 +78,7 @@ def get_content_from_url(
     url: str, csv_output: bool = False, raw: bool = False, delimiter: str = ","
 ) -> Generator[Any, None, None]:
     if csv_output:
-        with requests.get(url, verify=False, timeout=15) as resp:
+        with requests.get(url, verify=False) as resp:
             if raw:
                 yield resp
             else:
@@ -90,7 +90,7 @@ def get_content_from_url(
                     yield row
             resp.close()
     else:
-        with requests.get(url, timeout=15) as resp:
+        with requests.get(url) as resp:
             yield resp if raw else get_content(resp)
             resp.close()
 
@@ -333,9 +333,7 @@ def asset_import(
     content = get_content(response=response, get_from_location=False)
 
     with open(path) as file:
-        requests.put(
-            url=location_header, data=file.read().encode("utf-8").strip(), timeout=15
-        ).close()
+        requests.put(url=location_header, data=file.read().encode("utf-8").strip()).close()
 
     logger.info("Import request started.")
 
