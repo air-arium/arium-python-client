@@ -13,7 +13,6 @@ from api_call.arium.api.client_assets import (
 )
 from api_call.arium.api.client_calculations import CalculationsClient
 from api_call.arium.api.client_refdata import RefDataClient
-from api_call.arium.api.pdca_client import PDCAClient
 from api_call.arium.api.request import retry
 from auth.okta_auth import Auth
 from config.constants import *
@@ -28,7 +27,6 @@ class APIClient:
 
         self._assets_clients = None
         self._calculations_client = None
-        self._pdca_client = None
         self._refdata_client = None
 
         if BASE_URI in self._auth.settings():
@@ -42,9 +40,6 @@ class APIClient:
             }
             self._calculations_client = CalculationsClient(self)
             self._refdata_client = RefDataClient(self)
-
-        if BASE_URI_PDCA in self._auth.settings():
-            self._pdca_client = PDCAClient(self)
 
         self.method_fun = {
             "GET": self._auth.client.get,
@@ -63,15 +58,6 @@ class APIClient:
     def verify(self):
         return self._auth.verify
 
-    def get_pdca(self):
-        if self._pdca_client:
-            return self._pdca_client
-        raise Exception(
-            f"PDCA client was not initialized. "
-            f"Reason: {BASE_URI_PDCA} wasn't defined. "
-            f"Specify the '{BASE_URI_PDCA}' "
-            f"or '{AUDIENCE}' and '{AUDIENCE_PDCA}' in auth settings."
-        )
 
     def get_workspace(self):
         return self._auth.tenant

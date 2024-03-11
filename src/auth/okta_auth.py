@@ -30,7 +30,6 @@ def _create_settings(settings: Dict):
     auth_server = settings.pop(AUTH_SERVER, None)
     issuer = settings.pop(ISSUER, None)
     audience = settings.pop(AUDIENCE, None)
-    audience_pdca = settings.pop(AUDIENCE_PDCA, None)
 
     if issuer and auth_server:
         authorization_url = f"https://{issuer}/oauth2/{auth_server}/v1/authorize"
@@ -40,9 +39,6 @@ def _create_settings(settings: Dict):
     if audience:
         uri = f"https://{audience}.casualtyanalytics.co.uk/api"
         settings[BASE_URI] = uri
-        if audience_pdca:
-            uri = f"https://{audience}.{audience_pdca}.casualtyanalytics.co.uk/api"
-            settings[BASE_URI_PDCA] = uri
 
 
 class Auth:
@@ -56,13 +52,13 @@ class Auth:
     }
 
     def __init__(
-        self,
-        tenant: str,
-        role: str,
-        settings: Union[Dict, str],
-        authorization_code: bool = True,
-        prefix="",
-        verify: bool = True,
+            self,
+            tenant: str,
+            role: str,
+            settings: Union[Dict, str],
+            authorization_code: bool = True,
+            prefix="",
+            verify: bool = True,
     ):
         logger.debug(f"Init Auth: {tenant}, {role}.")
 
@@ -101,7 +97,7 @@ class Auth:
         }
 
     def _get_settings(
-        self, settings: Dict, prefix: str = None, authorization_code: bool = True
+            self, settings: Dict, prefix: str = None, authorization_code: bool = True
     ) -> Tuple[Dict[Any, Union[int, str, None]], Union[bool, Any]]:
         logger.debug(f"Loading auth settings: {settings}")
 
@@ -144,13 +140,6 @@ class Auth:
             logger.warning(
                 f"ARIUM client will not be initialized. '{BASE_URI}' was not defined. "
                 f"Specify '{BASE_URI}' or '{AUDIENCE}' in auth settings."
-            )
-
-        if BASE_URI_PDCA not in s_with_default:
-            logger.warning(
-                f"PDCA client will not be initialized. '{BASE_URI_PDCA}' was not defined. "
-                f"Specify '{BASE_URI_PDCA}' "
-                f"or '{AUDIENCE}' and '{AUDIENCE_PDCA}' in auth settings.."
             )
 
         s_with_default[REDIRECT_URI] = s_with_default[REDIRECT_URI].format(
