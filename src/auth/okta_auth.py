@@ -5,6 +5,7 @@ import webbrowser
 from os import environ, path
 from typing import List, Dict, Union, Any, Tuple
 
+import urllib3
 from oauthlib.oauth2 import BackendApplicationClient
 from requests_oauthlib import OAuth2Session
 
@@ -12,7 +13,6 @@ from config.constants import *
 from config.get_logger import get_logger
 
 logger = get_logger(__name__)
-
 
 def _parse_response(data: str) -> str:
     if "error" in data:
@@ -60,6 +60,12 @@ class Auth:
             prefix="",
             verify: bool = True,
     ):
+
+        if verify is False:
+            logger.info("Disabling SSL certificate verification - try to avoid 'verify=False' in production "
+                        "environment.")
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
         logger.debug(f"Init Auth: {tenant}, {role}.")
 
         self.role = role
