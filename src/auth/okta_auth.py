@@ -184,6 +184,7 @@ class Auth:
             client_id=self._settings[CLIENT_ID],
             client_secret=self._settings[CLIENT_SECRET],
             scope=scope,
+            verify=self.verify,
         )
         client = OAuth2Session(
             self._settings[CLIENT_ID],
