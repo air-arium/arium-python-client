@@ -27,8 +27,21 @@ request = {
     "numberOfRuns": 1000,
     "randomSeed": 1,
     "lossAllocation": {
-        "ref": "2095a919-0c83-5d1d-bd1c-8aec65fdc20c",  # "LA"
-        "portfolio": {"ref": "63767c4b-9b6c-5955-83ef-b9892d9e907a"},  # 362
+        "groups": [
+            {
+                "scenarios": [
+                    {
+                        "title": "Test scenario",
+                        "ref": "210dddfe-a913-5e47-bf56-de72d0d7b28a",  # "LA"
+                        "portfolio": {
+                            "ref": "3c70494b-a7d5-5ce2-a620-ce4fcde78b9f"
+                        },  # 362
+                    },
+                ],
+                "title": "group1",
+                "settings": {},
+            }
+        ]
     },
     "currency": [{"code": "usd", "rate": 1}],
 }
@@ -39,8 +52,8 @@ request_object.set_currency(
     value=CurrencyTable(name="My currency", currencies=[Currency(code="usd", rate=1)])
 )
 request_object.set_loss_allocation_reference(
-    reference="2095a919-0c83-5d1d-bd1c-8aec65fdc20c",
-    portfolio="63767c4b-9b6c-5955-83ef-b9892d9e907a",
+    reference="7a64c98b-81f8-5d84-ac20-600e6071026c",
+    portfolio="3c70494b-a7d5-5ce2-a620-ce4fcde78b9f",
 )
 request_object.set_number_of_runs(1000)
 request_object.set_random_seed(1)
@@ -57,5 +70,6 @@ result_2 = list(
 )
 result_3 = list(client.calculations().loss_allocation(request=request_object.get()))
 
-for row in result_1:
-    print(row)
+for export in result_3:
+    for row in export:
+        print(row)

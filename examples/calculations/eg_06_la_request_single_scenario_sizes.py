@@ -19,11 +19,10 @@ currency_id = ""
 
 # Create request
 request = LossAllocationRequest()
+request.create_group(group_name="Group 0")
 request.add_scenario_reference(
     reference=scenario_id,
-    scenario_id="Scenario 0",
-    key=0,
-    group_name="Group 0",
+    index=0,
     portfolio=portfolio_id,
 )
 request.set_currency_reference(currency_id)
