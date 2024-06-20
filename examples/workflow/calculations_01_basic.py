@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from api_call.client import APIClient
 from auth.okta_auth import Auth
@@ -49,7 +49,7 @@ request = {
 }
 
 # We can use this request to call loss allocation or perturbations and measure time.
-before = datetime.utcnow()
+before = datetime.now(timezone.utc)
 
 # Model: default (loss allocation)
 result = client.calculations().loss_allocation(request=request)
@@ -57,7 +57,7 @@ result = client.calculations().loss_allocation(request=request)
 # Model: perturbations
 # result_perturbations = list(client.calculations().perturbations(request=request))
 
-print('Calculations took ' + str(datetime.utcnow() - before))
+print('Calculations took ' + str(datetime.now(timezone.utc) - before))
 
 # Get first export (iterate over result to get all exports if multiple were defined in the request)
 export_0 = next(result)
