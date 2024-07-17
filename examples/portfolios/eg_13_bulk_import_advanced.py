@@ -4,32 +4,15 @@ from time import sleep
 
 from api_call.client import APIClient
 from auth.okta_auth import Auth
-from config.constants import CLIENT_ID, CLIENT_SECRET, AUTH_SERVER, ISSUER, AUDIENCE
 
-import sys
-import warnings
-
-warnings.filterwarnings("ignore")
-
-to_file = False
-if to_file:
-    orig_stdout = sys.stdout
-    f = open("out.txt", "w")
-    sys.stdout = f
-
-prefix = ""
-settings = {}
+# REQUIRED ACTION: Set settings
+auth_settings = {}
 
 # Create new client
-auth = Auth(
-    tenant="workspace1",
-    role="basic",
-    settings=settings,
-    prefix=prefix,
-    verify=False,
-)
+auth = Auth(tenant="workspace1", role="basic", settings=auth_settings)
 client = APIClient(auth=auth)
 
+# REQUIRED ACTION: Set input folder path
 # Import all portfolios from input folder
 input_folder = "data"
 override = True
@@ -37,13 +20,12 @@ portfolios = {p["name"]: p["id"] for p in client.portfolios().list()}
 uploading = []
 start_time = {}
 
-for ws in os.listdir(input_folder):
-    for file in os.listdir(input_folder + "/" + ws):
-        name = ws + "___" + file.replace(".csv", "")
-        print(f"Create {name}...")
-        asset = client.portfolios().create(name, file=input_folder + "/" + ws + "/" + file, wait=False)
-        uploading.append(asset["id"])
-        start_time[asset["id"]] = datetime.now()
+for file in os.listdir(input_folder):
+    name = input_folder + "___" + file.replace(".csv", "")
+    print(f"Create {name}...")
+    asset = client.portfolios().create(name, file=input_folder + "/" + file, wait=False)
+    uploading.append(asset["id"])
+    start_time[asset["id"]] = datetime.now()
 
 while uploading:
     sleep(5)

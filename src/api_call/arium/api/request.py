@@ -2,7 +2,10 @@ import codecs
 import csv
 import json
 import os
+import traceback
+import zipfile
 from http import HTTPStatus
+from io import BytesIO
 from time import sleep
 from typing import List, Optional, Dict, Union, Generator, Any
 from typing import TYPE_CHECKING
@@ -33,7 +36,9 @@ def retry(times):
                 try:
                     return func(*args, **kwargs)
                 except requests.exceptions.ConnectionError as e:
-                    print(
+                    logger.warning(str(e))
+                    traceback.print_exc()
+                    logger.info(
                         "Connection error thrown when attempting to run %s, attempt "
                         "%d of %d" % (func.__name__, attempt + 1, times)
                     )
@@ -50,7 +55,13 @@ def retry(times):
 @exception_handler
 @retry(times=10)
 def get_content(
-    response, accept=None, load=True, get_from_location=True, verify=True
+    response,
+    accept=None,
+    load=True,
+    get_from_location=True,
+    verify=True,
+    csv_content: bool = False,
+    unzip: bool = True,
 ) -> Union[bytes, str, Dict]:
     if accept is None:
         accept = [HTTPStatus.OK, HTTPStatus.NO_CONTENT]
@@ -64,7 +75,17 @@ def get_content(
         if not load:
             return content
         try:
-            content = json.loads(response.content)
+            if not csv_content:
+                content = json.loads(response.content)
+            else:
+                if unzip:
+                    with zipfile.ZipFile(BytesIO(response.content)) as input_zip:
+                        content = input_zip.read(input_zip.namelist()[0])
+                else:
+                    content = response.content
+
+                content = list(read_csv(content.splitlines(), delimiter=","))
+
         except Exception as e:
             logger.debug(e)
             return response.content.decode("utf-8")
@@ -73,26 +94,37 @@ def get_content(
         raise AriumAPACResponseException(response)
 
 
+def read_csv(data, delimiter: str = ","):
+    reader = csv.reader(
+        codecs.iterdecode(data, "utf-8"),
+        delimiter=delimiter,
+    )
+    for row in reader:
+        yield row
+
+
+@exception_handler
+def get_csv_content(response, raw: bool = False, delimiter: str = ","):
+    if raw:
+        yield response
+    else:
+        yield from read_csv(response.content.splitlines(), delimiter=delimiter)
+
+
 @retry(times=10)
 def get_content_from_url(
-    url: str, csv_output: bool = False, raw: bool = False, delimiter: str = ","
+    url: str,
+    csv_output: bool = False,
+    raw: bool = False,
+    delimiter: str = ",",
+    verify=True,
 ) -> Generator[Any, None, None]:
     if csv_output:
-        with requests.get(url, verify=False) as resp:
-            if raw:
-                yield resp
-            else:
-                reader = csv.reader(
-                    codecs.iterdecode(resp.content.splitlines(), "utf-8"),
-                    delimiter=delimiter,
-                )
-                for row in reader:
-                    yield row
-            resp.close()
+        with requests.get(url, verify=verify) as resp:
+            yield from get_csv_content(resp, raw=raw, delimiter=delimiter)
     else:
-        with requests.get(url) as resp:
+        with requests.get(url, verify=verify) as resp:
             yield resp if raw else get_content(resp)
-            resp.close()
 
 
 def get_resources(
@@ -103,26 +135,23 @@ def get_resources(
     delimiter: str = ",",
 ):
     endpoint = f"/{{tenant}}/{endpoint.format(calculations_id=calculations_id)}"
+    logger.debug(f"Get resources: {endpoint}")
     response = client.get_request(endpoint=endpoint)
     urls = get_content(response=response)
     for resource_url in urls:
-        yield get_content_from_url(
+        filename = resource_url.split("?")[0].split("/")[-1]
+        yield filename, get_content_from_url(
             url=resource_url,
             csv_output=csv_output,
             delimiter=delimiter,
+            verify=client.verify,
         )
 
 
-def get_request_data(
-    request: Union[str, Dict], request_args=None
-) -> Union[Dict, bytes]:
+def get_data(request: Union[str, Dict]) -> Dict:
     if type(request) not in (dict, list):
         with open(request) as f:
             request = json.load(f)
-
-    if request_args is not None:
-        request.update(request_args)
-
     return request
 
 
@@ -140,6 +169,45 @@ def asset_get(
 
 
 @exception_handler
+def asset_list_reports(
+    client: "APIClient",
+    collection: str,
+    asset_id: str,
+    status: bool = True,
+) -> Optional[Dict]:
+    endpoint = f"/{{tenant}}/{collection}/assets/{asset_id}/reports"
+    response = client.get_request(endpoint=endpoint)
+    content = get_content(response=response)
+
+    if status:
+        logger.info(f"Got {collection}/{asset_id}/reports.")
+    return content
+
+
+@exception_handler
+def asset_get_report(
+    client: "APIClient",
+    collection: str,
+    asset_id: str,
+    file: str,
+    status: bool = True,
+    csv_content: bool = False,
+    unzip: bool = True,
+    load: bool = True,
+) -> Optional[Dict]:
+    endpoint = f"/{{tenant}}/{collection}/assets/{asset_id}/reports/{file}"
+    response = client.get_request(endpoint=endpoint)
+    unzip = unzip and file.endswith(".zip")
+    content = get_content(
+        response=response, csv_content=csv_content, unzip=unzip, load=load
+    )
+
+    if status:
+        logger.info(f"Got {collection}/{asset_id}/reports/{file}.")
+    return content
+
+
+@exception_handler
 def asset_set_description(
     client: "APIClient", collection: str, asset_id: str, description: str
 ) -> Optional[str]:
@@ -152,9 +220,7 @@ def asset_set_description(
 
 
 @exception_handler
-def asset_rename(
-    client: "APIClient", collection: str, asset_id: str, asset_name: str
-) -> Optional[Any]:
+def asset_rename(client: "APIClient", collection: str, asset_id: str, asset_name: str):
     endpoint = f"/{{tenant}}/{collection}/assets/{asset_id}/move?assetName={asset_name}"
     response = client.put_request(endpoint=endpoint)
     content = get_content(response=response)
@@ -324,7 +390,7 @@ def asset_export(
 @exception_handler
 @retry(times=10)
 def asset_import(
-    client: "APIClient", collection: str, path: str, wait: bool = True
+    client: "APIClient", collection: str, path: str, wait: bool = True, verify=True
 ) -> Optional[str]:
     endpoint = f"/{{tenant}}/{collection}/assets/import"
     response = client.post_request(endpoint=endpoint)
@@ -333,7 +399,11 @@ def asset_import(
     content = get_content(response=response, get_from_location=False)
 
     with open(path) as file:
-        requests.put(url=location_header, data=file.read().encode("utf-8").strip()).close()
+        requests.put(
+            url=location_header,
+            data=file.read().encode("utf-8").strip(),
+            verify=verify,
+        )
 
     logger.info("Import request started.")
 
@@ -403,10 +473,11 @@ def asset_post(
         return content
     else:
         logger.info(f"Uploading {collection}/{asset_name}.")
-        data = data.encode("utf-8").strip()
-        requests.put(url=location_header, data=data, verify=verify).close()
+        with BytesIO(data.encode("utf-8").strip()) as stream:
+            requests.put(url=location_header, data=stream, verify=verify)
 
         if wait:
+            logger.info(f"Waiting for response ... {collection}/{asset_name}.")
             asset_polling(client=client, collection=collection, asset_id=content["id"])
         return asset_get(
             client=client,
@@ -436,6 +507,19 @@ def asset_polling(client: "APIClient", collection: str, asset_id: str):
 
     logger.info("Upload finished.")
     return asset["status"]
+
+
+def calc_asset_polling(client: "APIClient", asset: Dict, endpoint: str, url=None):
+    logger.info(f"Processing {endpoint}...")
+
+    while asset["stats"] == "processing":
+        sleep(5.0)
+        logger.debug(f"Polling... {endpoint}")
+        response = client.get_request(endpoint=endpoint, url=url)
+        asset = get_content(response)
+
+    logger.info(f"Got response {asset['status']}")
+    return asset
 
 
 def calc_polling(client: "APIClient", endpoint: str, url=None):

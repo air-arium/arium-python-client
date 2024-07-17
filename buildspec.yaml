@@ -11,7 +11,7 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-       python: 3.7
+       python: 3.9
     #commands:
       # - There are no build commands
   pre_build:

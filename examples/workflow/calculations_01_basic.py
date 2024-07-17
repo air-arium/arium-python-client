@@ -1,28 +1,25 @@
-from datetime import datetime
+import time
+from datetime import datetime, timezone
 
 from api_call.client import APIClient
 from auth.okta_auth import Auth
 
 # REQUIRED ACTION: Set settings
-# Note: please set <PREFIX>_CLIENT_ID, <PREFIX>_CLIENT_SECRET
-prefix = ""
-settings = {}
+prefix = "ARIUM_TEST_WEB"
+auth_settings = {}
 
 # Create new client
-auth = Auth(tenant="workspace1", role="basic", settings=settings, prefix=prefix)
+auth = Auth(tenant="workspace1", role="basic", settings=auth_settings, prefix=prefix)
 client = APIClient(auth=auth)
 
-# REQUIRED ACTION: Create request (update references)
+# REQUIRED ACTION: Set request parameters
+# Request
 request = {
     "export": {
         "csv": [
             {
                 "type": "simulation",
-                "characteristics": [
-                    "PolicyType",
-                    "ScenarioId",
-                    "PolicyNumber"
-                ],
+                "characteristics": ["PolicyType", "ScenarioId", "PolicyNumber"],
                 "metrics": [
                     "InsuredLoss",
                     "EconomicLoss",
@@ -30,42 +27,29 @@ request = {
                     "NonEconomicLoss",
                     "AggregatesDamaged",
                     "AccountId",
-                    "UniquePolicyId"
-                ]
+                    "UniquePolicyId",
+                ],
             }
         ]
     },
-    "numberOfRuns": 1000,
-    "randomSeed": 1,
     "lossAllocation": {
-        "ref": "",
-        "portfolio": {
-            "ref": ""
-        }
+        "ref": "example-asset-reference",
+        "portfolio": {"ref": "example-portfolio-reference"},
     },
-    "currency": {
-        "ref": ""
-    }
+    "currency": {"ref": "example-currency-reference"},
 }
 
-# We can use this request to call loss allocation or perturbations and measure time.
-before = datetime.utcnow()
+# We can use this request to call analysis and measure time.
+before = datetime.now(timezone.utc)
 
 # Model: default (loss allocation)
-result = client.calculations().loss_allocation(request=request)
+result = client.calculations().analysis(request=request)
+report = client.calculations().report(asset_id=result["id"])
+export_0 = next(report)
+print(f"Export headers: {export_0}")
+if report:
+    print("Rows:")
+    for row in report:
+        print(row)
 
-# Model: perturbations
-# result_perturbations = list(client.calculations().perturbations(request=request))
-
-print('Calculations took ' + str(datetime.utcnow() - before))
-
-# Get first export (iterate over result to get all exports if multiple were defined in the request)
-export_0 = next(result)
-
-# Result is csv export file. First row is the header:
-export_0 = list(export_0)
-header = export_0[0]
-rows = export_0[1:]
-
-print(f"Export header: {header}")
-print(f"Number of rows: {len(rows)}")
+print("Calculations took " + str(datetime.now(timezone.utc) - before))

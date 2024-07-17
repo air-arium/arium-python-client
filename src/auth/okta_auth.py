@@ -2,10 +2,11 @@ import json
 import socket
 import sys
 import webbrowser
+import urllib3
+
 from os import environ, path
 from typing import List, Dict, Union, Any, Tuple
 
-import urllib3
 from oauthlib.oauth2 import BackendApplicationClient
 from requests_oauthlib import OAuth2Session
 
@@ -13,6 +14,7 @@ from config.constants import *
 from config.get_logger import get_logger
 
 logger = get_logger(__name__)
+
 
 def _parse_response(data: str) -> str:
     if "error" in data:
@@ -52,18 +54,19 @@ class Auth:
     }
 
     def __init__(
-            self,
-            tenant: str,
-            role: str,
-            settings: Union[Dict, str],
-            authorization_code: bool = True,
-            prefix="",
-            verify: bool = True,
+        self,
+        tenant: str,
+        role: str,
+        settings: Union[Dict, str],
+        authorization_code: bool = True,
+        prefix="",
+        verify: bool = True,
     ):
-
         if verify is False:
-            logger.info("Disabling SSL certificate verification - try to avoid 'verify=False' in production "
-                        "environment.")
+            logger.info(
+                "Disabling SSL certificate verification - try to avoid 'verify=False' in production "
+                "environment."
+            )
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
         logger.debug(f"Init Auth: {tenant}, {role}.")
@@ -103,17 +106,21 @@ class Auth:
         }
 
     def _get_settings(
-            self, settings: Dict, prefix: str = None, authorization_code: bool = True
+        self,
+        settings: Union[Dict, str],
+        prefix: str = None,
+        authorization_code: bool = True,
     ) -> Tuple[Dict[Any, Union[int, str, None]], Union[bool, Any]]:
         logger.debug(f"Loading auth settings: {settings}")
 
-        authorization_code = settings.pop(AUTHORIZATION_CODE, authorization_code)
         s_with_default = Auth.DEFAULT_SETTINGS.copy()
 
         if isinstance(settings, str):
             with open(settings) as f:
                 logger.info(f"Loading auth from file: {settings}")
                 settings = json.load(f)
+
+        authorization_code = settings.pop(AUTHORIZATION_CODE, authorization_code)
 
         _create_settings(settings)
 
@@ -126,7 +133,7 @@ class Auth:
             del s_with_default[AUTHORIZATION_URL]
 
         if not all(s_with_default.values()):
-            self._conn_from_env(s_with_default, prefix)
+            self._settings_from_env(s_with_default, prefix)
         else:
             logger.warning(
                 "Client credentials not loaded from environment variables. "
@@ -154,7 +161,7 @@ class Auth:
         return s_with_default, authorization_code
 
     @staticmethod
-    def _conn_from_env(settings: Dict, prefix: str = None) -> Dict:
+    def _settings_from_env(settings: Dict, prefix: str = None) -> Dict:
         logger.debug(f"Prefix: {prefix}")
         prefix = "" if not prefix else prefix.replace("-", "_") + "_"
         for key in settings:

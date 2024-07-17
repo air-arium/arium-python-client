@@ -1,10 +1,11 @@
-# README 1.13.0# 
+# README 1.16.1# 
 
 ### What is this repository for? ###
 The project provides an example of how the Arium API can be used to create reusable scripts 
-for loss allocation. The project contains functions that can be used to make requests to the API. 
-In particular, the functions allow the user to run loss allocation on a portfolio.
+for running analytics. The project contains functions that can be used to make requests to the API. 
+In particular, the functions allow the user to run analysis on a portfolio.
 
+Detailed documentation is available through Arium UI under API documentation.
 
 ### Basic setup on Windows ###
 1. Install python 3.9.
@@ -24,14 +25,14 @@ Example script:
 from api_call.client import APIClient
 from auth.okta_auth import Auth
 
-conn = "connections.json"
+settings = "settings.json"
 prefix = "EXAMPLE"
 
-auth = Auth(tenant="workspace1", role="basic", connections=conn, prefix=prefix)
+auth = Auth(tenant="workspace1", role="basic", settings=settings, prefix=prefix)
 client = APIClient(auth=auth)
 
 client.portfolios().list()
 ``` 
 
-Here the Okta authentication on browser should kick off.
+Here the Okta authetication on browser should kick off.
 

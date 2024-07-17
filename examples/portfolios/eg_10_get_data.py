@@ -1,22 +1,23 @@
 import io
 
+import pandas as pd
+
 from api_call.client import APIClient
 from auth.okta_auth import Auth
 
 # REQUIRED ACTION: Set settings
-# Note: please set <PREFIX>_CLIENT_ID, <PREFIX>_CLIENT_SECRET
-prefix = ""
-settings = {}
+prefix = "ARIUM_TEST_WEB"
+auth_settings = {}
 
 # Create new client
-auth = Auth(tenant="workspace1", role="basic", settings=settings, prefix=prefix)
+auth = Auth(tenant="workspace1", role="basic", settings=auth_settings, prefix=prefix)
 client = APIClient(auth=auth)
 
-# REQUIRED ACTION: Select portfolio id
-portfolio_id = ""
+# REQUIRED ACTION: Set ref ids
+# Select portfolio id
+portfolio_id = "example-portfolio-reference"
 
-portfolio_data = client.portfolios().get_data(portfolio_id)
-
-print(f"portfolio payload data: \n")
-for line in io.StringIO(portfolio_data.decode("utf-8")):
-    print(repr(line))
+s = str(client.portfolios().get_data(portfolio_id), "utf-8")
+data = io.StringIO(s)
+df = pd.read_csv(data)
+print(df)

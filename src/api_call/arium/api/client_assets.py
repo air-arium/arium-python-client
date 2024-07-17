@@ -4,14 +4,14 @@ from typing import Optional, List, Dict, TYPE_CHECKING, Union
 from api_call.arium.api import request
 from api_call.arium.util.perturbations import (
     PerturbationsParameters,
-    add_perturbations_parameters_to_scenario,
+    add_perturbations_parameters_to_event,
 )
 from config.constants import (
     COLLECTION_PORTFOLIOS,
-    COLLECTION_SCENARIOS,
+    COLLECTION_EVENTS,
     COLLECTION_SIZES,
     COLLECTION_PROGRAMMES,
-    COLLECTION_LAS,
+    COLLECTION_ANALYSES,
     COLLECTION_CURRENCY_TABLES,
 )
 
@@ -165,6 +165,7 @@ class AssetsClient:
             client=self.client,
             collection=self.collection,
             path=path,
+            verify=self.client.verify,
         )
 
 
@@ -200,9 +201,9 @@ class PortfoliosClient(AssetsClient):
         )
 
 
-class ScenariosClient(AssetsClient):
+class EventsClient(AssetsClient):
     def __init__(self, client: "APIClient"):
-        super().__init__(client=client, collection=COLLECTION_SCENARIOS)
+        super().__init__(client=client, collection=COLLECTION_EVENTS)
 
     def set_payload_description(self, asset_id: str, payload_description: str):
         return request.asset_update_payload_description(
@@ -235,9 +236,9 @@ class ScenariosClient(AssetsClient):
             asset_info = self.get(asset_id)
             asset_name = asset_info["name"]
 
-        scenario = json.loads(self.get_data(asset_id))
-        add_perturbations_parameters_to_scenario(parameters, scenario)
-        return self.create(asset_name, scenario)
+        event = json.loads(self.get_data(asset_id))
+        add_perturbations_parameters_to_event(parameters, event)
+        return self.create(asset_name, event)
 
 
 class SizesClient(AssetsClient):
@@ -273,9 +274,9 @@ class ProgrammesClient(AssetsClient):
         super().__init__(client=client, collection=COLLECTION_PROGRAMMES)
 
 
-class LAsClient(AssetsClient):
+class AnalysesClient(AssetsClient):
     def __init__(self, client: "APIClient"):
-        super().__init__(client=client, collection=COLLECTION_LAS)
+        super().__init__(client=client, collection=COLLECTION_ANALYSES)
 
 
 class CurrencyTablesClient(AssetsClient):

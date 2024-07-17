@@ -1,5 +1,6 @@
 import json
 import re
+import time
 from http import HTTPStatus
 from typing import Dict, TYPE_CHECKING, Union
 
@@ -7,12 +8,11 @@ import requests
 
 from api_call.arium.api.request import (
     get_content,
-    get_request_data,
+    get_data,
     calc_polling,
     get_content_from_url,
     retry,
 )
-from config.constants import ENDPOINT_CALC_LA, ENDPOINT_PERTURBATIONS
 from config.get_logger import get_logger
 
 if TYPE_CHECKING:
@@ -22,13 +22,7 @@ logger = get_logger(__name__)
 
 
 class Calculations:
-    SUBJECT = {
-        "la": ENDPOINT_CALC_LA,
-        "perturbations": ENDPOINT_PERTURBATIONS,
-    }
-
-    def __init__(self, subject: str = "la"):
-        self.subject = subject
+    def __init__(self):
         self.data = {}
         self.presigned = None
         self.id = None
@@ -36,6 +30,7 @@ class Calculations:
         self.upload_response = None
         self.results_urls = []
         self.traceability_id = None
+        self.name = None
 
     def _get_presigned_upload(self, client: "APIClient", url: str):
         try:
@@ -62,19 +57,23 @@ class Calculations:
         self,
         client: "APIClient",
         request: Union[Dict, str],
+        endpoint: str,
         presigned: bool = True,
-        request_args: Dict = None,
+        name: str = None,
     ):
+        if name is None:
+            self.name = f"loss-allocation-{time.strftime('%Y-%m-%d-%H-%M-%S')}"
+
         self.presigned = presigned
         self.subject = self.SUBJECT.get(self.subject, self.subject)
 
-        request = get_request_data(request=request, request_args=request_args)
+        request = get_data(request=request)
         if presigned:
             request = json.dumps(request)
 
-        endpoint = f"/{{tenant}}/{self.subject}"
+        endpoint = f"/{{tenant}}/{endpoint.format(name=self.name)}"
 
-        logger.debug(f"Upload request for subject '{self.subject}' with presigned.")
+        logger.debug(f"Upload request with presigned.")
 
         if presigned:
             self.upload_response = requests.put(
@@ -82,7 +81,6 @@ class Calculations:
                 data=request,
                 headers={"Content-Type": ""},
                 verify=False,
-
             )
             self.upload_response.close()
         else:
@@ -110,10 +108,14 @@ class Calculations:
 
         return self
 
-    def get_results(self, csv_output: bool = True, raw: bool = False):
+    def get_results(
+        self, csv_output: bool = True, raw: bool = False, verify: bool = True
+    ):
         if self.presigned:
             for url in self.results_urls:
-                result = get_content_from_url(url=url, csv_output=csv_output, raw=raw)
+                result = get_content_from_url(
+                    url=url, csv_output=csv_output, raw=raw, verify=verify
+                )
                 yield next(result) if raw else result
         else:
             if raw:

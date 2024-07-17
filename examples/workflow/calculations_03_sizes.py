@@ -4,22 +4,24 @@ from api_call.client import APIClient
 from auth.okta_auth import Auth
 
 # REQUIRED ACTION: Set settings
-# Note: please set <PREFIX>_CLIENT_ID, <PREFIX>_CLIENT_SECRET
-prefix = ""
-settings = {}
+prefix = "ARIUM_TEST_WEB"
+auth_settings = {}
+
 
 # Create new client
-auth = Auth(tenant="workspace1", role="basic", settings=settings, prefix=prefix)
+auth = Auth(tenant="workspace1", role="basic", settings=auth_settings, prefix=prefix)
 client = APIClient(auth=auth)
 
+
+# REQUIRED ACTION: Set path to sizes request file
 # Define request
-request_file = "../../data/sizes_request.json"
+request_file = "path/to/sizes_request.json"
 
 # Define size data
-size_data_file = "../../data/size/sizes.csv"
-size_data_quadrupled_file = "../../data/size/sizes_quadruple.csv"
-size_data_thresholds_file = "../../data/size/sizes_thresholds.csv"
-size_data_quadrupled_thresholds_file = "../../data/size/sizes_thresholds_quadruple.csv"
+size_data_file = "data/size/sizes.csv"
+size_data_quadrupled_file = "data/size/sizes_quadruple.csv"
+size_data_thresholds_file = "data/size/sizes_thresholds.csv"
+size_data_quadrupled_thresholds_file = "data/size/sizes_thresholds_quadruple.csv"
 
 # Upload size data (if not uploaded yet)
 files = [
@@ -46,22 +48,34 @@ with open(request_file) as f:
 request1 = request.copy()
 # Base size data, no thresholds:
 request1["sizeData"] = {"ref": sizes["sizes"]}
-result1 = list(client.calculations().loss_allocation(request=request1))
+result1 = client.calculations().analysis(request=request1)
+report1 = client.calculations().report(asset_id=result1["id"])
 
 # Create request with second size data and run calculations
 request2 = request.copy()
 # same as request1['sizeData'] but all size metrics quadrupled:
 request2["sizeData"] = {"ref": sizes["sizes_quadruple"]}
-result2 = list(client.calculations().loss_allocation(request=request2))
+result2 = client.calculations().analysis(request=request2)
+report2 = client.calculations().report(asset_id=result2["id"])
 
 # Create request with third size data and run calculations
 request3 = request.copy()
 # Base size data, with thresholds
 request3["sizeData"] = {"ref": sizes["sizes_thresholds"]}
-result3 = list(client.calculations().loss_allocation(request=request3))
+result3 = client.calculations().analysis(request=request3)
+report3 = client.calculations().report(asset_id=result3["id"])
 
 # Create request with fourth size data and run calculations
 request4 = request.copy()
 # same as request3['sizeData'] but all size metrics quadrupled:
 request4["sizeData"] = {"ref": sizes["sizes_thresholds_quadruple"]}
-result4 = list(client.calculations().loss_allocation(request=request4))
+result4 = client.calculations().analysis(request=request4)
+report4 = client.calculations().report(asset_id=result4["id"])
+
+
+# print all the results
+for report in [report1, report2, report3, report4]:
+    if report:
+        print(f"Report ID: {report['id']}")
+        for row in report:
+            print(row)

@@ -4,14 +4,15 @@ from requests import Response
 
 from api_call.arium.api.client_assets import (
     PortfoliosClient,
-    ScenariosClient,
+    EventsClient,
     SizesClient,
     ProgrammesClient,
     CurrencyTablesClient,
-    LAsClient,
+    AnalysesClient,
     AssetsClient,
 )
 from api_call.arium.api.client_calculations import CalculationsClient
+from api_call.arium.api.client_calculations_asset import CalculationsAssetClient
 from api_call.arium.api.client_refdata import RefDataClient
 from api_call.arium.api.request import retry
 from auth.okta_auth import Auth
@@ -27,19 +28,20 @@ class APIClient:
 
         self._assets_clients = None
         self._calculations_client = None
+        self._calculations_asset_client = None
         self._refdata_client = None
 
         if BASE_URI in self._auth.settings():
             self._assets_clients = {
                 COLLECTION_PORTFOLIOS: PortfoliosClient(self),
-                COLLECTION_SCENARIOS: ScenariosClient(self),
-                COLLECTION_LAS: LAsClient(self),
+                COLLECTION_EVENTS: EventsClient(self),
+                COLLECTION_ANALYSES: AnalysesClient(self),
                 COLLECTION_CURRENCY_TABLES: CurrencyTablesClient(self),
                 COLLECTION_PROGRAMMES: ProgrammesClient(self),
                 COLLECTION_SIZES: SizesClient(self),
             }
             self._calculations_client = CalculationsClient(self)
-            self._refdata_client = RefDataClient(self)
+            self._calculations_asset_client = CalculationsAssetClient(self)
 
         self.method_fun = {
             "GET": self._auth.client.get,
@@ -57,7 +59,6 @@ class APIClient:
     @property
     def verify(self):
         return self._auth.verify
-
 
     def get_workspace(self):
         return self._auth.tenant
@@ -81,13 +82,13 @@ class APIClient:
         self._checks_client()
         return self._assets_clients[COLLECTION_PORTFOLIOS]
 
-    def scenarios(self) -> ScenariosClient:
+    def events(self) -> EventsClient:
         self._checks_client()
-        return self._assets_clients[COLLECTION_SCENARIOS]
+        return self._assets_clients[COLLECTION_EVENTS]
 
-    def loss_allocations(self) -> LAsClient:
+    def analysis(self) -> AnalysesClient:
         self._checks_client()
-        return self._assets_clients[COLLECTION_LAS]
+        return self._assets_clients[COLLECTION_ANALYSES]
 
     def currency_tables(self) -> CurrencyTablesClient:
         self._checks_client()
@@ -101,9 +102,13 @@ class APIClient:
         self._checks_client()
         return self._assets_clients[COLLECTION_SIZES]
 
-    def calculations(self) -> CalculationsClient:
+    def service(self) -> CalculationsClient:
         self._checks_client()
         return self._calculations_client
+
+    def calculations(self) -> CalculationsAssetClient:
+        self._checks_client()
+        return self._calculations_asset_client
 
     def _format_endpoint(self, endpoint: str) -> str:
         return endpoint.format(tenant=self._auth.tenant)
@@ -137,11 +142,11 @@ class APIClient:
         endpoint = self._format_endpoint(endpoint)
         url += endpoint
         logger.debug(f"method: {method} url: {url} headers: {headers}")
-        resp = self.method_fun[method](
+        response = self.method_fun[method](
             url=url, headers=headers, verify=self._auth.verify, **kwargs
         )
-        resp.close()
-        return resp
+        response.close()
+        return response
 
     def get_request(
         self, endpoint: str, url: str = None, headers: Dict = None, **kwargs
