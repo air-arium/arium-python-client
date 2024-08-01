@@ -41,19 +41,23 @@ class AnalysisRequest:
     def add_csv_export(
         self,
         export_type: str,
-        characteristics: List[str],
-        metrics: List[str],
+        characteristics: List[str] = [],
+        metrics: List[str] = [],
         export_non_zero_gross_loss: bool = True,
+        custom_id: str = "",
     ):
         if self.export is None:
             self.export = {"csv": []}
 
-        export = {
-            "exportNonZeroGrossLoss": export_non_zero_gross_loss,
-            "type": export_type,
-            "characteristics": characteristics,
-            "metrics": metrics,
-        }
+        if export_type == "custom" and custom_id:
+            export = {"type": export_type, "id": custom_id}
+        else:
+            export = {
+                "exportNonZeroGrossLoss": export_non_zero_gross_loss,
+                "type": export_type,
+                "characteristics": characteristics,
+                "metrics": metrics,
+            }
 
         self.export["csv"].append(export)
 
