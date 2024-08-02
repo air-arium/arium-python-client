@@ -25,7 +25,7 @@ request_object = AnalysisRequest()
 # REQUIRED ACTION: Set saved event set ref id
 a_id_1 = "example-asset-reference"
 
-# Option 2: Create new analysis asset (settings)
+# Option 2: Create new saved event set (settings)
 # REQUIRED ACTION: Set asset object parameters
 asset_object = AnalysisAsset()
 asset_object.set_number_of_runs(1000)
@@ -35,7 +35,7 @@ asset_object.create_group("Test events group", events=["example-event-reference"
 asset = client.analysis().create("test LA", data=asset_object.get())
 a_id_2 = asset["id"]
 
-# Option 3: Use existing analysis asset and modify
+# Option 3: Use existing saved event set and modify
 # REQUIRED ACTION: Set saved event set ref id
 asset_object = AnalysisAsset(**json.loads(client.analysis().get_data(asset_id=a_id_2)))
 asset_object.set_number_of_runs(1000)

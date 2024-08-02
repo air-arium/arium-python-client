@@ -7,6 +7,7 @@ from api_call.arium.util.analysis_request import (
 from api_call.client import APIClient
 from auth.okta_auth import Auth
 
+# Note: To get reinsurance results with editable analysis settings
 # REQUIRED ACTION: Set settings
 auth_settings = {}
 
