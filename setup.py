@@ -8,7 +8,7 @@ long_description = (here / "README.md").read_text(encoding="utf-8")
 
 setup(
     name="arium-apac",
-    version="1.16.1",
+    version="1.17.0",
     description="Arium APAC project",
     long_description=long_description,
     url="https://github.com/air-arium/python",
@@ -25,6 +25,6 @@ setup(
     include_package_data=True,
     package_data={"config": ["*.ini"]},
     packages=find_packages(where="src"),
-    python_requires=">=3.9, <3.12",
+    python_requires=">=3.12, <3.13",
     install_requires=["requests-oauthlib"],
 )
