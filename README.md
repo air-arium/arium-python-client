@@ -1,4 +1,4 @@
-# README 1.16.1# 
+# README 1.17.0# 
 
 ### What is this repository for? ###
 The project provides an example of how the Arium API can be used to create reusable scripts 
@@ -8,7 +8,7 @@ In particular, the functions allow the user to run analysis on a portfolio.
 Detailed documentation is available through Arium UI under API documentation.
 
 ### Basic setup on Windows ###
-1. Install python 3.9.
+1. Install python 3.12.
 2. Get source from git.
 3. Install dependencies: <br>
    `pip install -r requirements.txt`
