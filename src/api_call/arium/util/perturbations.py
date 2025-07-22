@@ -34,11 +34,11 @@ class PerturbationsParameters:
         return {key: value for key, value in self.__dict__.items() if value is not None}
 
 
-def add_perturbations_parameters_to_scenario(
-    parameters: PerturbationsParameters, scenario: Dict
+def add_perturbations_parameters_to_event(
+    parameters: PerturbationsParameters, event: Dict
 ):
-    scenario["scenario"]["perturbations"] = parameters.to_dict()
-    return scenario
+    event["event"]["perturbations"] = parameters.to_dict()
+    return event
 
 
 def get_perturbations_parameters(parameters: Dict):
