@@ -1,12 +1,12 @@
-# README 2.0 # 
+# README VCCM 1.0.1 # 
 
 ### What is this repository for? ###
 
-The project provides an example of how the Arium API can be used to create reusable scripts
+The project provides an example of how the VCCM API can be used to create reusable scripts
 for running analytics. The project contains functions that can be used to make requests to the API.
 In particular, the functions allow the user to run analysis on a portfolio.
 
-Detailed documentation is available through Arium UI under API documentation.
+Detailed documentation is available through VCCM UI under API documentation.
 
 ### Managing the project with `uv` ###
 
@@ -92,7 +92,7 @@ If you prefer not to use `uv`, you can still set up the project using `pip`. Not
 
 #### 1. Example script with authorization in the web browser (authorization code flow): ####
 
-To get the authentication settings, please contact your Arium representative or visit the Arium Admin Tool.
+To get the authentication settings, please contact the support team.
 
 ```python
 from api_call.client import APIClient
@@ -144,7 +144,7 @@ Note: the PYTHONPATH is needed to run the examples: the /src folder is needed to
 
 ##### 2. Example script with machine-to-machine authentication #####
 
-To get machine-to-machine authentication settings, please contact your Arium representative.
+To get machine-to-machine authentication settings, please contact the support team.
 
 ```python
 from api_call.client import APIClient
