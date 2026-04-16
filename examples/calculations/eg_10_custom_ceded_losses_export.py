@@ -1,11 +1,16 @@
 import json
-from api_call.arium.util.currency_table import Currency, CurrencyTable
+
 from api_call.arium.util.analysis_request import (
     AnalysisRequest,
     AnalysisAsset,
 )
 from api_call.client import APIClient
 from auth.okta_auth import Auth
+
+'''
+WARNING! Usage of client.calculations() is deprecated. 
+Use client.activity() instead.
+'''
 
 # Note: To get reinsurance results with editable analysis settings
 # REQUIRED ACTION: Set settings

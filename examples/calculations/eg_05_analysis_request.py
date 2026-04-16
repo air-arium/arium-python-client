@@ -1,4 +1,3 @@
-from api_call.arium.util.currency_table import Currency, CurrencyTable
 from api_call.arium.util.analysis_request import (
     AnalysisRequest,
     AnalysisAsset,
@@ -6,9 +5,13 @@ from api_call.arium.util.analysis_request import (
 from api_call.client import APIClient
 from auth.okta_auth import Auth
 
+'''
+WARNING! Usage of client.calculations() is deprecated. 
+Use client.activity() instead.
+'''
+
 # REQUIRED ACTION: Set settings
 auth_settings = {}
-
 
 # Create new client
 auth = Auth(tenant="workspace1", role="basic", settings=auth_settings)
@@ -18,7 +21,6 @@ client = APIClient(auth=auth)
 # REQUIRED ACTION: Set ref ids of the assets
 portfolio_id = "example-portfolio-reference"
 event_id = "example-event-reference"
-size_data_id = "example-size-reference"
 currency_id = "example-currency-reference"
 
 # Create analysis asset
@@ -38,7 +40,6 @@ asset_object.set_random_seed(1)
 # Upload
 asset = client.analysis().create("test LA", data=asset_object.get())
 
-
 # Create request
 request_object = AnalysisRequest()
 
@@ -56,9 +57,6 @@ request_object.add_csv_export(
     characteristics=["RunId", "ScenarioId"],
     metrics=["GrossLoss"],
 )
-
-# Optionally set size data
-# request_object.set_size_data(size_data_id)
 
 # Add LA reference to request and define portfolio
 request_object.set_analysis_reference(reference=asset["id"], portfolio=portfolio_id)

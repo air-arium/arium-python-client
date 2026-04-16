@@ -1,5 +1,7 @@
 from typing import TYPE_CHECKING, Dict, Union
 
+from typing_extensions import deprecated
+
 from api_call.arium.api.calculations import Calculations
 from api_call.arium.api.calculations_asset import CalculationsAsset
 from api_call.arium.api.request import get_resources, get_content, get_content_from_url
@@ -12,6 +14,7 @@ if TYPE_CHECKING:
     from api_call.client import APIClient
 
 
+@deprecated("Use ActivityClient instead. Supported since version 2.0")
 class CalculationsAssetClient:
     def __init__(self, client: "APIClient"):
         self.client = client

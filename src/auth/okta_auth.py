@@ -51,6 +51,7 @@ class Auth:
         CLIENT_SECRET: None,
         AUTHORIZATION_URL: None,
         TOKEN_URL: None,
+        VERIFY_SSL: True,
     }
 
     def __init__(
@@ -60,26 +61,34 @@ class Auth:
         settings: Union[Dict, str],
         authorization_code: bool = True,
         prefix="",
-        verify: bool = True,
+        verify: bool | None = None,
     ):
-        if verify is False:
+        logger.debug(f"Init Auth: {tenant}, {role}.")
+        self.role = role
+        self.tenant = tenant
+        self._config_path = path.dirname(path.abspath(__file__))
+        self.client = None
+
+        self._settings, authorization_code = self._get_settings(
+            settings, prefix, authorization_code
+        )
+
+        self.verify = True
+
+        # set 'verify' to value from arguments - this has precedence over the settings
+        if verify is not None:
+            self.verify = verify
+        # otherwise use the value from the settings
+        elif self._settings[VERIFY_SSL] is False:
+            self.verify = False
+
+        if self.verify is False:
             logger.info(
                 "Disabling SSL certificate verification - try to avoid 'verify=False' in production "
                 "environment."
             )
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-        logger.debug(f"Init Auth: {tenant}, {role}.")
-
-        self.role = role
-        self.tenant = tenant
-        self._config_path = path.dirname(path.abspath(__file__))
-        self.verify = verify
-        self.client = None
-
-        self._settings, authorization_code = self._get_settings(
-            settings, prefix, authorization_code
-        )
         logger.info(f"Loaded auth settings: {self.settings()}")
 
         self._auth_user(authorization_code)
@@ -140,7 +149,7 @@ class Auth:
                 "Please use environment variables for security reasons!"
             )
 
-        if not all(s_with_default.values()):
+        if not all(s_with_default.values().__str__()):
             missing = ", ".join(
                 {key for key in required_keys if not s_with_default[key]}
             )

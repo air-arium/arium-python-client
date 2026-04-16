@@ -5,6 +5,7 @@ from http import HTTPStatus
 from typing import Dict, TYPE_CHECKING, Union
 
 import requests
+from typing_extensions import deprecated
 
 from api_call.arium.api.request import (
     get_content,
@@ -21,6 +22,8 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+
+@deprecated("Use ActivityClient instead. Supported since version 2.0")
 class Calculations:
     def __init__(self):
         self.data = {}
@@ -65,7 +68,6 @@ class Calculations:
             self.name = f"loss-allocation-{time.strftime('%Y-%m-%d-%H-%M-%S')}"
 
         self.presigned = presigned
-        self.subject = self.SUBJECT.get(self.subject, self.subject)
 
         request = get_data(request=request)
         if presigned:

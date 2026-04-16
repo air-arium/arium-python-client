@@ -1,6 +1,49 @@
-[build-system]
-requires = [
-    "setuptools>=42",
-    "wheel"
+[project]
+name = "arium-apac"
+version = "2.0"
+description = "Arium python client project"
+readme = "README.md"
+requires-python = ">=3.12, <3.14"
+authors = [
+    { name = "arium", email = "AriumSupport@verisk.com" }
 ]
+license = "MIT"
+license-files = ["LICENSE"]
+classifiers = [
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Build Tools",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+]
+keywords = ["arium", "apac"]
+dependencies = [
+    "requests==2.32.4",
+    "oauthlib==3.2.2",
+    "requests-oauthlib==1.4.1",
+    "numpy==2.1.1",
+    "pandas==2.2.3",
+    "dataclasses-json==0.6.7",
+    "typing-extensions>=4.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/verisk/arium-apac"
+Repository = "https://github.com/verisk/arium-apac.git"
+"Bug Tracker" = "https://github.com/verisk/arium-apac/issues"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+exclude = ["api_call.arium.pdca_data_processing.tests", "api_call.arium.pdca_data_processing.tests.*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.ini"]
+
+[tool.setuptools.exclude-package-data]
+"*" = ["*tests*", "test_*", "tests"]
+
+[build-system]
+requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"

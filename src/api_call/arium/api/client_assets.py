@@ -1,3 +1,4 @@
+import hashlib
 import json
 from typing import Optional, List, Dict, TYPE_CHECKING, Union
 
@@ -64,6 +65,7 @@ class AssetsClient:
             asset_name=asset_name,
             data=data,
             presigned=presigned,
+            wait=wait,
         )
 
     def delete(self, asset_id: str) -> Optional[Dict]:
@@ -189,12 +191,13 @@ class PortfoliosClient(AssetsClient):
                 data = f.read()
 
         csv_date_format = "dd/mm/yyyy" if csv_date_format is None else csv_date_format
+        digest = hashlib.sha1(data.encode("utf-8").strip()).hexdigest()
         return request.asset_post(
             client=self.client,
             collection=self.collection,
             asset_name=asset_name,
             data=data,
-            params={"csv_date_format": csv_date_format, "csv_has_header": has_header},
+            params={"csv_date_format": csv_date_format, "csv_has_header": has_header, "digest": digest, "digest_algorithm": "sha1"},
             presigned=True,
             wait=wait,
             verify=self.client.verify,

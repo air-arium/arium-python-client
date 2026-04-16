@@ -35,6 +35,7 @@ BASE_URI = "base_uri"
 BASE_URI_PDCA = "base_uri_pdca"
 REDIRECT_URI = "redirect_uri"
 AUTHORIZATION_CODE = "authorization_code"
+VERIFY_SSL = "verify_ssl"
 
 ACCOUNT_NAME = "accountname"
 ACCOUNT_NUMBER = "accountnumber"

@@ -1,8 +1,9 @@
 from typing import TYPE_CHECKING, Dict, Union
 
+from typing_extensions import deprecated
+
 from api_call.arium.api.calculations import Calculations
-from api_call.arium.api.calculations_asset import CalculationsAsset
-from api_call.arium.api.request import get_resources, get_content, get_content_from_url
+from api_call.arium.api.request import get_resources
 from config.constants import *
 from config.get_logger import get_logger
 
@@ -12,6 +13,7 @@ if TYPE_CHECKING:
     from api_call.client import APIClient
 
 
+@deprecated("Use ActivityClient instead. Supported since version 2.0")
 class CalculationsClient:
     def __init__(self, client: "APIClient"):
         self.client = client
@@ -43,12 +45,12 @@ class CalculationsClient:
             yield r, next(g)
 
     def _calculate_presigned(
-        self,
-        request: Union[str, Dict],
-        endpoint: str,
-        csv_output: bool = True,
-        raw: bool = False,
-        presigned=True,
+            self,
+            request: Union[str, Dict],
+            endpoint: str,
+            csv_output: bool = True,
+            raw: bool = False,
+            presigned=True,
     ):
         """
         Note: This is a generator. From multiple presigned links.
@@ -70,12 +72,12 @@ class CalculationsClient:
         yield from results
 
     def _calculate_simple(
-        self,
-        request: Union[str, Dict],
-        endpoint: str,
-        csv_output: bool = True,
-        raw: bool = False,
-        presigned: bool = False,
+            self,
+            request: Union[str, Dict],
+            endpoint: str,
+            csv_output: bool = True,
+            raw: bool = False,
+            presigned: bool = False,
     ):
         """
         Note: This function returns value. From content or one presigned link.
@@ -97,10 +99,10 @@ class CalculationsClient:
         return next(results)
 
     def get_calculations(
-        self,
-        request: Union[str, Dict],
-        endpoint: str,
-        presigned: bool = True,
+            self,
+            request: Union[str, Dict],
+            endpoint: str,
+            presigned: bool = True,
     ) -> Calculations:
         calculations = Calculations()
         calculations.upload_request(
@@ -124,7 +126,7 @@ class CalculationsClient:
         )
 
     def connected_nodes(
-        self, request: Union[str, Dict], portfolio: str = None, raw=False
+            self, request: Union[str, Dict], portfolio: str = None, raw=False
     ):
         return self._calculate_simple(
             request=request,

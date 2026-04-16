@@ -6,6 +6,11 @@ from api_call.arium.util.analysis_request import (
     AnalysisAsset,
 )
 
+'''
+WARNING! Usage of client.calculations() is deprecated. 
+Use client.activity() instead.
+'''
+
 # REQUIRED ACTION: Set settings
 auth_settings = {}
 
