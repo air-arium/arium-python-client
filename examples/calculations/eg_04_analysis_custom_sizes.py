@@ -1,6 +1,11 @@
 from api_call.client import APIClient
 from auth.okta_auth import Auth
 
+'''
+WARNING! Usage of client.calculations() is deprecated. 
+Use client.activity() instead.
+'''
+
 # REQUIRED ACTION: Set settings
 auth_settings = {}
 

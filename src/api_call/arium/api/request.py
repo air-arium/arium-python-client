@@ -1,5 +1,6 @@
 import codecs
 import csv
+import hashlib
 import json
 import os
 import traceback
@@ -32,7 +33,18 @@ def retry(times):
         def f(*args, **kwargs):
             delay = 1
             attempt = 0
-            while attempt < times:
+            max_attempts = times
+            if 'retry' in kwargs:
+                try:
+                    retries = kwargs.get('retry', 1)
+                    del kwargs['retry']
+                    if type(retries) is int:
+                        max_attempts = retries
+                except Exception as e:
+                    logger.warning(f"retry parameter must be an integer")
+                    logger.error(e)
+
+            while attempt < max_attempts:
                 try:
                     return func(*args, **kwargs)
                 except requests.exceptions.ConnectionError as e:
@@ -40,7 +52,7 @@ def retry(times):
                     traceback.print_exc()
                     logger.info(
                         "Connection error thrown when attempting to run %s, attempt "
-                        "%d of %d" % (func.__name__, attempt + 1, times)
+                        "%d of %d" % (func.__name__, attempt + 1, max_attempts)
                     )
                     attempt += 1
                     sleep(delay)
@@ -55,13 +67,13 @@ def retry(times):
 @exception_handler
 @retry(times=10)
 def get_content(
-    response,
-    accept=None,
-    load=True,
-    get_from_location=True,
-    verify=True,
-    csv_content: bool = False,
-    unzip: bool = True,
+        response,
+        accept=None,
+        load=True,
+        get_from_location=True,
+        verify=True,
+        csv_content: bool = False,
+        unzip: bool = True,
 ) -> Union[bytes, str, Dict]:
     if accept is None:
         accept = [HTTPStatus.OK, HTTPStatus.NO_CONTENT]
@@ -113,11 +125,11 @@ def get_csv_content(response, raw: bool = False, delimiter: str = ","):
 
 @retry(times=10)
 def get_content_from_url(
-    url: str,
-    csv_output: bool = False,
-    raw: bool = False,
-    delimiter: str = ",",
-    verify=True,
+        url: str,
+        csv_output: bool = False,
+        raw: bool = False,
+        delimiter: str = ",",
+        verify=True,
 ) -> Generator[Any, None, None]:
     if csv_output:
         with requests.get(url, verify=verify) as resp:
@@ -128,11 +140,11 @@ def get_content_from_url(
 
 
 def get_resources(
-    client: "APIClient",
-    calculations_id: str,
-    endpoint: str,
-    csv_output: bool = True,
-    delimiter: str = ",",
+        client: "APIClient",
+        calculations_id: str,
+        endpoint: str,
+        csv_output: bool = True,
+        delimiter: str = ",",
 ):
     endpoint = f"/{{tenant}}/{endpoint.format(calculations_id=calculations_id)}"
     logger.debug(f"Get resources: {endpoint}")
@@ -157,7 +169,7 @@ def get_data(request: Union[str, Dict]) -> Dict:
 
 @exception_handler
 def asset_get(
-    client: "APIClient", collection: str, asset_id: str, status: bool = True
+        client: "APIClient", collection: str, asset_id: str, status: bool = True
 ) -> Optional[Dict]:
     endpoint = f"/{{tenant}}/{collection}/assets/{asset_id}"
     response = client.get_request(endpoint=endpoint)
@@ -170,10 +182,10 @@ def asset_get(
 
 @exception_handler
 def asset_list_reports(
-    client: "APIClient",
-    collection: str,
-    asset_id: str,
-    status: bool = True,
+        client: "APIClient",
+        collection: str,
+        asset_id: str,
+        status: bool = True,
 ) -> Optional[Dict]:
     endpoint = f"/{{tenant}}/{collection}/assets/{asset_id}/reports"
     response = client.get_request(endpoint=endpoint)
@@ -186,14 +198,14 @@ def asset_list_reports(
 
 @exception_handler
 def asset_get_report(
-    client: "APIClient",
-    collection: str,
-    asset_id: str,
-    file: str,
-    status: bool = True,
-    csv_content: bool = False,
-    unzip: bool = True,
-    load: bool = True,
+        client: "APIClient",
+        collection: str,
+        asset_id: str,
+        file: str,
+        status: bool = True,
+        csv_content: bool = False,
+        unzip: bool = True,
+        load: bool = True,
 ) -> Optional[Dict]:
     endpoint = f"/{{tenant}}/{collection}/assets/{asset_id}/reports/{file}"
     response = client.get_request(endpoint=endpoint)
@@ -209,7 +221,7 @@ def asset_get_report(
 
 @exception_handler
 def asset_set_description(
-    client: "APIClient", collection: str, asset_id: str, description: str
+        client: "APIClient", collection: str, asset_id: str, description: str
 ) -> Optional[str]:
     endpoint = f"/{{tenant}}/{collection}/assets/{asset_id}/description"
     response = client.put_request(endpoint=endpoint, data=description)
@@ -231,7 +243,7 @@ def asset_rename(client: "APIClient", collection: str, asset_id: str, asset_name
 
 @exception_handler
 def asset_list(
-    client: "APIClient", collection: str, latest: bool = True
+        client: "APIClient", collection: str, latest: bool = True
 ) -> Optional[List]:
     endpoint = f"/{{tenant}}/{collection}/assets?latest={str(latest).lower()}"
     response = client.get_request(endpoint=endpoint)
@@ -246,7 +258,7 @@ def asset_list(
 
 @exception_handler
 def asset_versions(
-    client: "APIClient", collection: str, asset_id: str
+        client: "APIClient", collection: str, asset_id: str
 ) -> Optional[List]:
     endpoint = f"/{{tenant}}/{collection}/assets/{asset_id}/versions"
     response = client.get_request(endpoint=endpoint)
@@ -261,7 +273,7 @@ def asset_versions(
 
 @exception_handler
 def asset_get_description(
-    client: "APIClient", collection: str, asset_id: str
+        client: "APIClient", collection: str, asset_id: str
 ) -> Optional[str]:
     endpoint = f"/{{tenant}}/{collection}/assets/{asset_id}"
     response = client.get_request(endpoint=endpoint)
@@ -273,7 +285,7 @@ def asset_get_description(
 
 @exception_handler
 def asset_get_payload_description(
-    client: "APIClient", collection: str, asset_id: str
+        client: "APIClient", collection: str, asset_id: str
 ) -> Optional[str]:
     endpoint = f"/{{tenant}}/{collection}/assets/{asset_id}/payload/description"
     response = client.get_request(endpoint=endpoint)
@@ -285,7 +297,7 @@ def asset_get_payload_description(
 
 @exception_handler
 def asset_update_payload_description(
-    client: "APIClient", collection: str, asset_id: str, payload_description: str
+        client: "APIClient", collection: str, asset_id: str, payload_description: str
 ) -> Optional[str]:
     endpoint = f"/{{tenant}}/{collection}/assets/{asset_id}/payload/description"
     response = client.put_request(endpoint=endpoint, data=payload_description)
@@ -306,7 +318,7 @@ def asset_delete(client: "APIClient", collection: str, asset_id: str) -> Optiona
 
 @exception_handler
 def asset_copy(
-    client: "APIClient", collection: str, asset_id: str, asset_name: str
+        client: "APIClient", collection: str, asset_id: str, asset_name: str
 ) -> Optional[Dict]:
     endpoint = f"/{{tenant}}/{collection}/assets/{asset_id}/copy?assetName={asset_name}"
     response = client.post_request(endpoint=endpoint)
@@ -318,7 +330,7 @@ def asset_copy(
 
 @exception_handler
 def asset_lock(
-    client: "APIClient", collection: str, asset_id: str, locked: bool
+        client: "APIClient", collection: str, asset_id: str, locked: bool
 ) -> Optional[Dict]:
     url_locked = "lock" if locked else "unlock"
     endpoint = f"/{{tenant}}/{collection}/assets/{asset_id}/{url_locked}"
@@ -341,12 +353,12 @@ def asset_is_empty(client: "APIClient", collection: str) -> Optional[bool]:
 
 @exception_handler
 def asset_copy_workspace(
-    client: "APIClient",
-    collection: str,
-    from_tenant: str,
-    to_tenant: str,
-    asset_ids: List[str] = None,
-    wait: bool = True,
+        client: "APIClient",
+        collection: str,
+        from_tenant: str,
+        to_tenant: str,
+        asset_ids: List[str] = None,
+        wait: bool = True,
 ) -> Optional[Dict]:
     request = {
         "from_tenant": from_tenant,
@@ -369,11 +381,11 @@ def asset_copy_workspace(
 
 @exception_handler
 def asset_export(
-    client: "APIClient",
-    collection: str,
-    asset_ids: List[str],
-    export_name: str = None,
-    output_folder: str = "",
+        client: "APIClient",
+        collection: str,
+        asset_ids: List[str],
+        export_name: str = None,
+        output_folder: str = "",
 ) -> Optional[str]:
     export_name = export_name if export_name is not None else "export_" + collection
     endpoint = f"/{{tenant}}/{collection}/assets/export"
@@ -390,7 +402,7 @@ def asset_export(
 @exception_handler
 @retry(times=10)
 def asset_import(
-    client: "APIClient", collection: str, path: str, wait: bool = True, verify=True
+        client: "APIClient", collection: str, path: str, wait: bool = True, verify=True
 ) -> Optional[str]:
     endpoint = f"/{{tenant}}/{collection}/assets/import"
     response = client.post_request(endpoint=endpoint)
@@ -416,10 +428,10 @@ def asset_import(
 
 @exception_handler
 def asset_get_data(
-    client: "APIClient",
-    collection: str,
-    asset_id: str,
-    get_from_location: bool = False,
+        client: "APIClient",
+        collection: str,
+        asset_id: str,
+        get_from_location: bool = False,
 ) -> Optional[bytes]:
     url_mode = "presigned" if get_from_location else "auto"
     endpoint = f"/{{tenant}}/{collection}/assets/{asset_id}/payload?assetPayloadMode={url_mode}"
@@ -444,25 +456,50 @@ def asset_get_data(
 @exception_handler
 @retry(times=10)
 def asset_post(
-    client: "APIClient",
-    collection,
-    asset_name,
-    data: Union[str, Dict],
-    params: Dict = None,
-    presigned: bool = False,
-    wait=True,
-    verify=True,
+        client: "APIClient",
+        collection,
+        asset_name,
+        data: Union[str, Dict],
+        params: Dict = None,
+        presigned: bool = False,
+        wait=True,
+        verify=True,
 ) -> Optional[Dict]:
+
     url_params = {
         "assetName": asset_name,
         **({"assetPayloadMode": presigned} if presigned else {}),
     }
+
+    if params is None:
+        params = {}
+
+
+
+    if 'digest' not in params:
+        if isinstance(data, dict):
+            payload = json.dumps(data)
+        else:
+            payload = data
+
+        encoded_payload = payload.encode("utf-8").strip()
+        digest = hashlib.sha1(encoded_payload).hexdigest()
+        params['digest'] = digest
+        params['digest_algorithm'] = 'sha1'
+
     if params is not None:
         url_params.update(params)
     url_params = urlencode(url_params)
 
+    logger.info(f"Posting {collection}/{asset_name} with params {url_params}.")
+
     endpoint = f"/{{tenant}}/{collection}/assets?{url_params}"
-    json_data = data if not presigned else None
+
+    if presigned:
+        json_data = None
+    else:
+        json_data = data
+
     response = client.post_request(endpoint=endpoint, json=json_data)
 
     location_header = response.headers.get("Location", None)
@@ -471,20 +508,20 @@ def asset_post(
     if location_header is None:
         logger.info(f"Created {content['id']} ({collection}).")
         return content
-    else:
-        logger.info(f"Uploading {collection}/{asset_name}.")
-        with BytesIO(data.encode("utf-8").strip()) as stream:
-            requests.put(url=location_header, data=stream, verify=verify)
 
-        if wait:
-            logger.info(f"Waiting for response ... {collection}/{asset_name}.")
-            asset_polling(client=client, collection=collection, asset_id=content["id"])
-        return asset_get(
-            client=client,
-            collection=collection,
-            asset_id=content["id"],
-            status=False,
-        )
+    logger.info(f"Uploading {collection}/{asset_name}.")
+    with BytesIO(data.encode("utf-8").strip()) as stream:
+        requests.put(url=location_header, data=stream, verify=verify)
+
+    if wait:
+        logger.info(f"Waiting for response ... {collection}/{asset_name}.")
+        asset_polling(client=client, collection=collection, asset_id=content["id"])
+    return asset_get(
+        client=client,
+        collection=collection,
+        asset_id=content["id"],
+        status=False,
+    )
 
 
 def asset_polling(client: "APIClient", collection: str, asset_id: str):

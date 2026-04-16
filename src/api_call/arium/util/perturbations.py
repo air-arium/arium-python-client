@@ -46,7 +46,7 @@ def get_perturbations_parameters(parameters: Dict):
         shape=parameters["Shape"],
         subshape=parameters["Subshape"],
         description=parameters["Description"],
-        total_loss=parameters["TotalLoss"],
+        total_loss=parameters["totalLoss"],
         accounts=parameters["Accounts"],
         simulation=parameters["Simulation"],
         title=parameters["Title"],

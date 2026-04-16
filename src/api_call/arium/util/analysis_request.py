@@ -8,7 +8,6 @@ class AnalysisRequest:
         kwargs = {k.lower().replace("_", ""): v for k, v in kwargs.items()}
 
         self.export = kwargs.get("export".lower())
-        self.reinsurance = kwargs.get("reinsurance".lower())
         self.analysis = kwargs.get(
             "lossAllocation".lower()
         )  # LABELS: part of request do not update
@@ -29,9 +28,6 @@ class AnalysisRequest:
     def set_analysis_reference(self, reference: str, portfolio: str):
         self.analysis = {"ref": reference, "portfolio": {"ref": portfolio}}
 
-    def set_reinsurance_reference(self, reference: str):
-        self.reinsurance = {"ref": reference}
-
     def set_currency(self, value: CurrencyTable):
         self.currency = value
 
@@ -39,12 +35,12 @@ class AnalysisRequest:
         self.size_data = {"ref": reference}
 
     def add_csv_export(
-        self,
-        export_type: str,
-        characteristics: List[str] = [],
-        metrics: List[str] = [],
-        export_non_zero_gross_loss: bool = True,
-        custom_id: str = "",
+            self,
+            export_type: str,
+            characteristics: List[str] = [],
+            metrics: List[str] = [],
+            export_non_zero_gross_loss: bool = True,
+            custom_id: str = "",
     ):
         if self.export is None:
             self.export = {"csv": []}
@@ -64,7 +60,6 @@ class AnalysisRequest:
     def get(self):
         request = {
             "export": self.export,
-            "reinsurance": self.reinsurance,
             "lossAllocation": self.analysis,  # LABELS: part of request do not update
             "currency": self._get_currency(),
             "sizeData": self.size_data,
@@ -98,10 +93,10 @@ class AnalysisAsset:
         self.groups = kwargs.get("groups", [])
 
     def add_event_reference(
-        self,
-        group_index: int,
-        reference: str,
-        portfolio: str,
+            self,
+            group_index: int,
+            reference: str,
+            portfolio: str,
     ):
         event = {
             "ref": reference,
@@ -110,22 +105,31 @@ class AnalysisAsset:
         self.groups[group_index]["events"].append(event)
 
     def create_group(
-        self,
-        group_name: str = "",
-        events: List[str] = None,
-        equal_weighted: Optional[bool] = None,
-        freq_param_key: Optional[str] = None,
-        frequency: Optional[float] = None,
+            self,
+            group_name: str = "",
+            events: List[str] = None,
+            event_titles: List[str] = None,
+            equal_weighted: Optional[bool] = None,
+            freq_param_key: Optional[str] = None,
+            frequency: Optional[float] = None,
     ):
         settings = {
             "frequency": frequency,
             "equalWeighted": equal_weighted,
             "freqParamKey": freq_param_key,
         }
+        if events is None:
+            events_list = []
+        elif events and event_titles is None:
+            events_list = [{"ref": e} for e in events]
+        else:
+            events_list = [
+                {"ref": e, "title": title} for e, title in zip(events, event_titles)
+            ]
         group = {
             "title": group_name,
             "settings": {k: v for k, v in settings.items() if v is not None},
-            "scenarios": [] if events is None else [{"ref": e} for e in events],
+            "scenarios": events_list,
         }
         self.groups.append(group)
         return len(self.groups) - 1  # new group index

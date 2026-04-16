@@ -2,6 +2,8 @@ import io
 import time
 from typing import Dict, TYPE_CHECKING, Union
 
+from typing_extensions import deprecated
+
 from api_call.arium.api.client_assets import AssetsClient
 from api_call.arium.api.exceptions import AriumAPACException
 from api_call.arium.api.request import (
@@ -18,6 +20,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+@deprecated("Use ActivityClient instead. Supported since version 2.0")
 class CalculationsAsset(AssetsClient):
     def __init__(self, client: "APIClient"):
         super().__init__(client, collection=COLLECTION_CALCULATIONS)

@@ -1,7 +1,9 @@
 from typing import Dict, Tuple
 
 from requests import Response
+from typing_extensions import deprecated
 
+from api_call.arium.api.client_activity import ActivityClient
 from api_call.arium.api.client_assets import (
     PortfoliosClient,
     EventsClient,
@@ -30,6 +32,7 @@ class APIClient:
         self._assets_clients = None
         self._calculations_client = None
         self._calculations_asset_client = None
+        self._pdca_client = None
         self._refdata_client = None
 
         if BASE_URI in self._auth.settings():
@@ -42,8 +45,9 @@ class APIClient:
                 COLLECTION_SIZES: SizesClient(self),
             }
             self._calculations_client = CalculationsClient(self)
+            self._activity_client = ActivityClient(self)
             self._calculations_asset_client = CalculationsAssetClient(self)
-
+            self._refdata_client = RefDataClient(self)
 
         if BASE_URI_PDCA in self._auth.settings():
             self._pdca_client = PDCAClient(self)
@@ -72,7 +76,7 @@ class APIClient:
             f"PDCA client was not initialized. "
             f"Reason: {BASE_URI_PDCA} wasn't defined. "
             f"Specify the '{BASE_URI_PDCA}' "
-            f"or '{AUDIENCE}' and '{AUDIENCE_PDCA}' in auth settings."
+            f"or '{AUDIENCE}' in auth settings."
         )
 
     def get_workspace(self):
@@ -85,6 +89,9 @@ class APIClient:
                 f"Reason: ARIUM {BASE_URI} wasn't defined. "
                 f"Specify the '{BASE_URI}' or '{AUDIENCE}' in auth settings."
             )
+
+    def activity(self) -> ActivityClient:
+        return self._activity_client
 
     def refdata(self) -> RefDataClient:
         return self._refdata_client
@@ -117,10 +124,13 @@ class APIClient:
         self._checks_client()
         return self._assets_clients[COLLECTION_SIZES]
 
+
+    @deprecated("Use activity() instead. Supported since version 2.0")
     def service(self) -> CalculationsClient:
         self._checks_client()
         return self._calculations_client
 
+    @deprecated("Use activity() instead. Supported since version 2.0")
     def calculations(self) -> CalculationsAssetClient:
         self._checks_client()
         return self._calculations_asset_client
@@ -129,7 +139,7 @@ class APIClient:
         return endpoint.format(tenant=self._auth.tenant)
 
     def _get_default(
-        self, url: str, headers: Dict, plain: bool = False
+            self, url: str, headers: Dict, plain: bool = False
     ) -> Tuple[str, Dict]:
         if url is None:
             url = self._auth.settings()[BASE_URI]
@@ -144,14 +154,14 @@ class APIClient:
             )
         return url, headers
 
-    @retry(times=10)
+    @retry(times=3)
     def _request(
-        self,
-        method: str,
-        endpoint: str,
-        url: str = None,
-        headers: Dict = None,
-        **kwargs,
+            self,
+            method: str,
+            endpoint: str,
+            url: str = None,
+            headers: Dict = None,
+            **kwargs,
     ) -> Response:
         url, headers = self._get_default(url, headers, "data" in kwargs)
         endpoint = self._format_endpoint(endpoint)
@@ -164,21 +174,21 @@ class APIClient:
         return response
 
     def get_request(
-        self, endpoint: str, url: str = None, headers: Dict = None, **kwargs
+            self, endpoint: str, url: str = None, headers: Dict = None, **kwargs
     ) -> Response:
         return self._request("GET", endpoint, url, headers, **kwargs)
 
     def post_request(
-        self, endpoint: str, url: str = None, headers: Dict = None, **kwargs
+            self, endpoint: str, url: str = None, headers: Dict = None, **kwargs
     ) -> Response:
         return self._request("POST", endpoint, url, headers, **kwargs)
 
     def put_request(
-        self, endpoint: str, url: str = None, headers: Dict = None, **kwargs
+            self, endpoint: str, url: str = None, headers: Dict = None, **kwargs
     ) -> Response:
         return self._request("PUT", endpoint, url, headers, **kwargs)
 
     def delete_request(
-        self, endpoint: str, url: str = None, headers: Dict = None, **kwargs
+            self, endpoint: str, url: str = None, headers: Dict = None, **kwargs
     ) -> Response:
         return self._request("DELETE", endpoint, url, headers, **kwargs)

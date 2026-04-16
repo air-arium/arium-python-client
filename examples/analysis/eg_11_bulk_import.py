@@ -7,6 +7,7 @@ from auth.okta_auth import Auth
 
 # REQUIRED ACTION: Set settings
 prefix = "ARIUM_TEST_WEB"
+
 auth_settings = {}
 
 # Create new client

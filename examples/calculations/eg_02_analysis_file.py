@@ -1,6 +1,11 @@
 from api_call.client import APIClient
 from auth.okta_auth import Auth
 
+'''
+WARNING! Usage of client.calculations() is deprecated. 
+Use client.activity() instead.
+'''
+
 # Note: JSON requests do not support editing analysis settings,
 # will run the calculations using parameters specified in referenced saved event set asset
 
